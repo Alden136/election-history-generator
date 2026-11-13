@@ -169,6 +169,26 @@ a { color: inherit; }
   background-image: radial-gradient(circle, #56698344 .8px, transparent 1px), radial-gradient(ellipse at 51% 49%, #22304b6b, transparent 74%);
   background-size: 15px 15px, 100% 100%;
 }
+.map-stage[data-style='map'] { padding: 8px 10px 6px; }
+.map-header-tools { display: flex; align-items: center; gap: 10px; }
+.map-style { padding: 2px; flex-wrap: nowrap; }
+@media (max-width: 560px) { .map-header-tools .panel-count { display: none; } }
+.map-style button { padding: 3px 8px; font-size: 11px; }
+.geo-map { display: block; width: 100%; height: auto; overflow: visible; }
+.geo-loading { display: grid; place-items: center; aspect-ratio: 960 / 731; color: var(--muted); font-size: 12px; }
+.geo-background { fill: #171f2c; stroke: #263244; stroke-width: .6; }
+.geo-inset { fill: #111824; stroke: #33435a; stroke-width: 1; stroke-dasharray: 3 3; }
+.geo-state { stroke: #0f1621; stroke-width: .7; stroke-linejoin: round; cursor: pointer; outline: none; }
+.geo-state[data-kind='absent'] { fill: #223044; stroke: #3d4e65; }
+.geo-state:focus-visible { stroke: var(--text); stroke-width: 2; }
+.geo-label { font: 600 14px var(--mono); text-anchor: middle; pointer-events: none; }
+.geo-callout { cursor: pointer; }
+.geo-callout line { stroke: #6b7c92; stroke-width: .8; }
+.geo-callout rect { stroke: #0f1621; stroke-width: .7; }
+.geo-callout[data-kind='absent'] rect { fill: #223044; stroke: #3d4e65; }
+.geo-callout[data-active='true'] rect { stroke: var(--text); stroke-width: 1.6; }
+.geo-callout text { font: 600 12.5px var(--mono); text-anchor: middle; pointer-events: none; }
+.geo-outline { fill: none; stroke: var(--text); stroke-width: 1.8; stroke-linejoin: round; pointer-events: none; }
 .tile-map { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); grid-template-rows: repeat(9, minmax(0, 1fr)); gap: 4px; width: min(100%, 470px); aspect-ratio: 11 / 8.05; }
 .tile { display: grid; min-width: 0; place-items: center; padding: 0; border: 1px solid color-mix(in srgb, var(--tile-color) 64%, transparent); border-radius: 5px; background: color-mix(in srgb, var(--tile-color) 75%, #101827); color: #131b24; font: 600 clamp(8px, 1vw, 12px) var(--mono); }
 .tile[data-kind='absent'] { background: #192432; border-color: #354457; color: #91a1b5; }

@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { ELECTIONS, partyName, STATES } from '../engine/data';
 import { electoralTotals } from '../engine/states';
 import { NO_VOTE, SECEDED, type Expansions, type Term } from '../engine/types';
@@ -12,6 +12,104 @@ const TERRITORIES: Record<keyof Expansions, string> = {
   texas: 'Texas', west: 'Western states', mexico: 'Northern Mexico', canada: 'Canada',
   quebec: 'Quebec', puertoRico: 'Puerto Rico', cuba: 'Cuba', westVirginia: 'West Virginia',
 };
+
+type MapStyle = 'map' | 'tiles';
+const MAP_STYLE_KEY = 'election-simulator:map-style';
+
+function readMapStyle(): MapStyle {
+  try { return localStorage.getItem(MAP_STYLE_KEY) === 'tiles' ? 'tiles' : 'map'; } catch { return 'map'; }
+}
+
+interface MapShape {
+  d: string;
+  label?: [number, number];
+  labelOutside?: boolean;
+  callout?: { box: [number, number, number, number]; line: [number, number, number, number] };
+}
+interface MapShapes {
+  width: number;
+  height: number;
+  background: string;
+  insets: [number, number, number, number][];
+  states: Record<string, MapShape>;
+}
+
+/**
+ * The shapes file is about 200 KB, so it loads as its own file the first time
+ * the map is shown instead of slowing down the first page load.
+ */
+let shapesCache: MapShapes | null = null;
+const shapesRequest = () => import('./map-shapes.json').then((m) => (shapesCache = m.default as unknown as MapShapes));
+
+function useMapShapes(): MapShapes | null {
+  const [shapes, setShapes] = useState(shapesCache);
+  useEffect(() => {
+    if (shapes) return;
+    let live = true;
+    shapesRequest().then((loaded) => { if (live) setShapes(loaded); }, () => { /* the tile map stays available */ });
+    return () => { live = false; };
+  }, [shapes]);
+  return shapes;
+}
+
+/** A geographic map of all 64 possible states, from shapes built by tools/build-map.ts. */
+function GeoMap({ term, active, selected, fill, kind, label, handlers }: {
+  term: Term;
+  active: number | null;
+  selected: number | null;
+  fill: (i: number) => string;
+  kind: (i: number) => string;
+  label: (i: number) => string;
+  handlers: (i: number) => Record<string, () => void>;
+}) {
+  const keyboard = (i: number) => (event: KeyboardEvent<SVGElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handlers(i).onClick!(); }
+  };
+  const textColor = (i: number) => kind(i) === 'absent' ? '#91a1b5' : '#131b24';
+  const mapShapes = useMapShapes();
+  if (!mapShapes) return <div className="geo-map geo-loading" role="status">Loading map…</div>;
+  const SHAPES = mapShapes.states;
+
+  return <svg className="geo-map" viewBox={`0 0 ${mapShapes.width} ${mapShapes.height}`}
+    role="group" aria-label={`${term.election} election results by state`}>
+    <defs>
+      <pattern id="seceded-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width="6" height="6" fill="#927ba6" /><rect width="2.5" height="6" fill="#c2acd3" />
+      </pattern>
+    </defs>
+    <path className="geo-background" d={mapShapes.background} />
+    {mapShapes.insets.map(([x, y, w, h], n) =>
+      <rect key={n} className="geo-inset" x={x} y={y} width={w} height={h} rx={6} />)}
+    {STATES.map((state, i) => {
+      const shape = SHAPES[state.code]!;
+      return <path key={state.code} className="geo-state" d={shape.d} data-kind={kind(i)}
+        fill={kind(i) === 'seceded' ? 'url(#seceded-hatch)' : kind(i) === 'absent' ? undefined : fill(i)}
+        role="button" tabIndex={0} aria-label={label(i)} aria-pressed={selected === i}
+        onKeyDown={keyboard(i)} {...handlers(i)} />;
+    })}
+    {/* Small states: a leader line and a box in the Atlantic. */}
+    {STATES.map((state, i) => {
+      const callout = SHAPES[state.code]!.callout;
+      if (!callout) return null;
+      const [x1, y1, x2, y2] = callout.line;
+      const [bx, by, bw, bh] = callout.box;
+      return <g key={state.code} className="geo-callout" data-kind={kind(i)} data-active={active === i}
+        aria-hidden="true" {...handlers(i)}>
+        <line x1={x1} y1={y1} x2={x2} y2={y2} />
+        <rect x={bx} y={by} width={bw} height={bh} rx={3}
+          fill={kind(i) === 'seceded' ? 'url(#seceded-hatch)' : kind(i) === 'absent' ? undefined : fill(i)} />
+        <text x={bx + bw / 2} y={by + bh / 2 + 4.5} fill={textColor(i)}>{state.code}</text>
+      </g>;
+    })}
+    {STATES.map((state, i) => {
+      const { label: at, labelOutside } = SHAPES[state.code]!;
+      return at ? <text key={state.code} className="geo-label" x={at[0]} y={at[1] + 5}
+        fill={labelOutside ? 'var(--muted)' : textColor(i)}>{state.code}</text> : null;
+    })}
+    {/* The hovered or selected state, outlined on top of its neighbours. */}
+    {active !== null && <path className="geo-outline" d={SHAPES[STATES[active]!.code]!.d} />}
+  </svg>;
+}
 
 export function YearPicker({ year, chooseYear }: { year: number; chooseYear: (year: number) => void }) {
   const index = ELECTIONS.indexOf(year);
@@ -38,6 +136,11 @@ export function ElectionMap({ term }: { term: Term }) {
   const [focused, setFocused] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const active = hovered ?? focused ?? selected;
+  const [style, setStyle] = useState<MapStyle>(readMapStyle);
+  const chooseStyle = (next: MapStyle) => {
+    setStyle(next);
+    try { localStorage.setItem(MAP_STYLE_KEY, next); } catch { /* storage unavailable: keep it for this visit */ }
+  };
   const grid = term.grid;
   const totals = electoralTotals(grid);
   const parties = PARTY_COLORS.flatMap((color, party) =>
@@ -46,31 +149,46 @@ export function ElectionMap({ term }: { term: Term }) {
   if (grid.winners.includes(SECEDED)) legend.push({ color: SECEDED_COLOR, label: 'Seceded', kind: 'seceded' });
   const activeState = active === null ? null : STATES[active]!;
 
+  const fill = (i: number) => {
+    const winner = grid.winners[i]!;
+    return PARTY_COLORS[winner] ?? (winner === SECEDED ? SECEDED_COLOR : NO_VOTE_COLOR);
+  };
+  const kind = (i: number) => grid.winners[i] === SECEDED ? 'seceded' : grid.winners[i] === NO_VOTE ? 'absent' : 'party';
+  const label = (i: number) =>
+    `${STATES[i]!.name}: ${stateResult(term, i)}${term.index ? `, ${grid.votes[i]} electoral votes` : ''}`;
+  const handlers = (i: number) => ({
+    onMouseEnter: () => setHovered(i), onMouseLeave: () => setHovered(null),
+    onFocus: () => setFocused(i), onBlur: () => setFocused(null),
+    onClick: () => setSelected(selected === i ? null : i),
+  });
+
   return <section className="panel map-panel" aria-labelledby="map-title">
     <div className="panel-header">
       <h2 id="map-title"><Icon name="map" /> Electoral map</h2>
-      <span className="panel-count">{totals.votingStates} voting {totals.votingStates === 1 ? 'state' : 'states'}</span>
-    </div>
-    <div className="map-stage">
-      <div className="tile-map" role="group" aria-label={`${term.election} election results by state`}>
-        {STATES.map((state, i) => {
-          const winner = grid.winners[i]!;
-          const style = {
-            gridColumn: state.tile.col + 1,
-            gridRow: state.tile.row + 1,
-            '--tile-color': PARTY_COLORS[winner] ?? (winner === SECEDED ? SECEDED_COLOR : NO_VOTE_COLOR),
-          } as CSSProperties;
-          return <button key={state.code} type="button" className="tile"
-            data-kind={winner === SECEDED ? 'seceded' : winner === NO_VOTE ? 'absent' : 'party'}
-            data-active={active === i} aria-pressed={selected === i} style={style}
-            aria-label={`${state.name}: ${stateResult(term, i)}${term.index ? `, ${grid.votes[i]} electoral votes` : ''}`}
-            onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
-            onFocus={() => setFocused(i)} onBlur={() => setFocused(null)}
-            onClick={() => setSelected(selected === i ? null : i)}>
-            <span>{state.code}</span>
-          </button>;
-        })}
+      <div className="map-header-tools">
+        <div className="segmented map-style" role="group" aria-label="Map style">
+          <button type="button" aria-pressed={style === 'map'} onClick={() => chooseStyle('map')}>Map</button>
+          <button type="button" aria-pressed={style === 'tiles'} onClick={() => chooseStyle('tiles')}>Tiles</button>
+        </div>
+        <span className="panel-count">{totals.votingStates} voting {totals.votingStates === 1 ? 'state' : 'states'}</span>
       </div>
+    </div>
+    <div className="map-stage" data-style={style}>
+      {style === 'map'
+        ? <GeoMap term={term} active={active} selected={selected} fill={fill} kind={kind} label={label} handlers={handlers} />
+        : <div className="tile-map" role="group" aria-label={`${term.election} election results by state`}>
+          {STATES.map((state, i) => {
+            const tileStyle = {
+              gridColumn: state.tile.col + 1,
+              gridRow: state.tile.row + 1,
+              '--tile-color': fill(i),
+            } as CSSProperties;
+            return <button key={state.code} type="button" className="tile" data-kind={kind(i)}
+              data-active={active === i} aria-pressed={selected === i} style={tileStyle} aria-label={label(i)} {...handlers(i)}>
+              <span>{state.code}</span>
+            </button>;
+          })}
+        </div>}
     </div>
     <div className="map-legend" aria-label="Map legend">
       {legend.map(({ color, label, kind }) => <span key={label}><i data-kind={kind} style={{ '--tile-color': color } as CSSProperties} />{label}</span>)}

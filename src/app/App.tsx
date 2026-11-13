@@ -199,7 +199,7 @@ export function App() {
           <ElectionResults term={term} winnerIdeology={timeline.terms[term.index + 1]?.potusIdeology ?? timeline.finalPresident.ideology} />
         </div>
         <Overview timeline={timeline} openElection={openElection} />
-        <TermDetails term={term} />
+        <TermDetails timeline={timeline} term={term} />
       </>}
       {view === 'history' && <History terms={timeline.terms} year={year} chooseYear={openElection} />}
       {view === 'charts' && <Charts terms={timeline.terms} year={year} chooseYear={chooseYear} />}

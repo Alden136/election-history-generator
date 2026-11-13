@@ -3,6 +3,7 @@ import { ELECTIONS, partyName, STATES } from '../engine/data';
 import { electoralTotals } from '../engine/states';
 import { NO_VOTE, SECEDED, type Expansions, type Term } from '../engine/types';
 import { ideologyLabel } from '../engine/util';
+import type { Timeline } from '../engine/simulate';
 import { Icon } from './Icon';
 import { Party } from './Party';
 import { decidedByCongress, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed } from './presentation';
@@ -121,21 +122,40 @@ export function ElectionResults({ term, winnerIdeology }: { term: Term; winnerId
   </section>;
 }
 
-export function TermDetails({ term }: { term: Term }) {
+/**
+ * The term won in the selected election: the winner's four years in office,
+ * which the next election's row describes. The last election (2064) has no
+ * later row, so that term shows only what the engine computes for it.
+ */
+export function TermDetails({ timeline, term }: { timeline: Timeline; term: Term }) {
+  const next = timeline.terms[term.index + 1];
+  const final = timeline.finalPresident;
+  const began = next?.termBegan ?? final.termBegan;
+  const expansions = next?.grid.expansions ?? timeline.finalExpansions;
   const territories = (Object.keys(TERRITORIES) as (keyof Expansions)[])
-    .filter((territory) => term.grid.expansions[territory]).map((territory) => TERRITORIES[territory]);
+    .filter((territory) => expansions[territory]).map((territory) => TERRITORIES[territory]);
+  const ideology = next?.potusIdeology ?? final.ideology;
+  const descriptor = next ? next.descriptor : final.descriptor;
+  const ending = next
+    ? `Ends with the ${next.election} election: ${next.result === 'WIN' ? `${partyName(next.potusParty)} kept the White House` : `${partyName(next.winnerParty)} took over`}`
+    : 'The simulation ends after 2064';
+
   return <section className="panel term-details" aria-labelledby="term-title">
-    <div className="panel-header"><h2 id="term-title">Term in office</h2><span className="panel-count">{term.termBegan}–{term.termBegan + 4}</span></div>
+    <div className="panel-header"><h2 id="term-title">Their term in office</h2>
+      <span className="panel-count">{began}–{began + 4}</span></div>
     <div className="term-grid">
-      <div><span className="eyebrow">Incumbent</span><strong>{term.president}</strong><Party party={term.potusParty} /></div>
-      <div><span className="eyebrow">Term event</span><strong>{term.descriptor || 'No major event'}</strong>
-        <small>{ideologyLabel(term.potusIdeology)} · {signed(term.potusIdeology)}</small></div>
-      <div><span className="eyebrow">Election-day approval</span><strong>{percent(term.electionDayApproval)}</strong>
-        <small>{percent(term.dayOneApproval)} on day one</small></div>
-      <div><span className="eyebrow">Supreme Court ideology</span><strong>{signed(term.courtAverage)}</strong>
-        <small>{term.court.filter((seat) => seat !== null).length} of {term.court.length} seats filled</small></div>
+      <div><span className="eyebrow">President</span><strong>{term.winnerName}</strong><Party party={term.winnerParty} /></div>
+      <div><span className="eyebrow">Term event</span><strong>{descriptor || 'No major event'}</strong>
+        <small>{ideologyLabel(ideology)} · {signed(ideology)}</small></div>
+      <div><span className="eyebrow">Election-day approval</span>
+        <strong>{next ? percent(next.electionDayApproval) : '—'}</strong>
+        <small>{next ? `${percent(next.dayOneApproval)} on day one` : 'No election after 2064'}</small></div>
+      <div><span className="eyebrow">Supreme Court ideology</span>
+        <strong>{next ? signed(next.courtAverage) : '—'}</strong>
+        <small>{next ? `${next.court.filter((seat) => seat !== null).length} of ${next.court.length} seats filled` : 'Not simulated after 2064'}</small></div>
       <div><span className="eyebrow">Territorial expansions</span><strong>{territories.length}</strong>
         <small>{territories.length ? territories.join(', ') : 'None recorded'}</small></div>
     </div>
+    <p className="term-ending">{ending}.</p>
   </section>;
 }

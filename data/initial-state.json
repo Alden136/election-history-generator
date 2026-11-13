@@ -1,0 +1,327 @@
+{
+  "blocs": [
+    {
+      "name": "Revolutionary",
+      "position": -9,
+      "startSize": 2
+    },
+    {
+      "name": "Progressive",
+      "position": -6.5,
+      "startSize": 30
+    },
+    {
+      "name": "Liberal",
+      "position": -3.5,
+      "startSize": 200
+    },
+    {
+      "name": "Moderate",
+      "position": 0,
+      "startSize": 200
+    },
+    {
+      "name": "Conservative",
+      "position": 3.5,
+      "startSize": 200
+    },
+    {
+      "name": "Nationalist",
+      "position": 6.5,
+      "startSize": 30
+    },
+    {
+      "name": "Authoritarian",
+      "position": 9,
+      "startSize": 2
+    }
+  ],
+  "court": [
+    5,
+    1,
+    2,
+    6,
+    1,
+    4,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "seedCells": {
+    "W": {
+      "label": "Victor PV%",
+      "row4": 1
+    },
+    "AC": {
+      "label": "TERM BEGAN:",
+      "row4": 1789
+    },
+    "AD": {
+      "label": "PRESIDENT:",
+      "row4": "George Washington",
+      "row5": "George Washington"
+    },
+    "AE": {
+      "label": "POTUS Party",
+      "row4": "Federalist",
+      "row5": "Federalist"
+    },
+    "AG": {
+      "label": "Ideo Score",
+      "row4": 1
+    },
+    "AJ": {
+      "label": "Day 1 Approval",
+      "row4": 0.75
+    },
+    "AL": {
+      "label": "Descriptor",
+      "row4": "National Father"
+    },
+    "AM": {
+      "label": "Stability",
+      "row4": 0.65
+    },
+    "AN": {
+      "label": "E-Day Approval",
+      "row4": 0.75
+    },
+    "AP": {
+      "label": "INCUMBENT",
+      "row4": "George Washington",
+      "row5": "George Washington"
+    },
+    "AR": {
+      "label": "WINNER",
+      "row4": "George Washington"
+    },
+    "AU": {
+      "label": "Federalist",
+      "row4": 1
+    },
+    "BJ": {
+      "label": "Total",
+      "row4": 1
+    },
+    "BO": {
+      "label": "American",
+      "row4": 0
+    },
+    "BP": {
+      "label": "Democrat",
+      "row4": 0
+    },
+    "BQ": {
+      "label": "Whig",
+      "row4": 0
+    },
+    "BR": {
+      "label": "L. Republican",
+      "row4": 0
+    },
+    "BS": {
+      "label": "Populist",
+      "row4": 0
+    },
+    "BT": {
+      "label": "National",
+      "row4": 0
+    },
+    "BU": {
+      "label": "Progressive",
+      "row4": 0
+    },
+    "BV": {
+      "label": "Agrarian",
+      "row4": 0
+    },
+    "BW": {
+      "label": "Union",
+      "row4": 0
+    },
+    "BX": {
+      "label": "Socialist",
+      "row4": 0
+    },
+    "BY": {
+      "label": "Liberal",
+      "row4": 0
+    },
+    "BZ": {
+      "label": "Patriot",
+      "row4": 0
+    },
+    "CA": {
+      "label": "Third Party",
+      "row4": 0
+    },
+    "CD": {
+      "label": "Pre ideo",
+      "row4": 0
+    },
+    "FL": {
+      "label": "American",
+      "row4": 0
+    },
+    "FM": {
+      "label": "Democrat",
+      "row4": 0
+    },
+    "FN": {
+      "label": "Whig",
+      "row4": 0
+    },
+    "FO": {
+      "label": "L. Republican",
+      "row4": 0
+    },
+    "FP": {
+      "label": "Populist",
+      "row4": 0
+    },
+    "FQ": {
+      "label": "National",
+      "row4": 0
+    },
+    "FR": {
+      "label": "Progressive",
+      "row4": 0
+    },
+    "FS": {
+      "label": "Agrarian",
+      "row4": 0
+    },
+    "FT": {
+      "label": "Union",
+      "row4": 0
+    },
+    "FU": {
+      "label": "Socialist",
+      "row4": 0
+    },
+    "FV": {
+      "label": "Liberal",
+      "row4": 0
+    },
+    "FW": {
+      "label": "Patriot",
+      "row4": 0
+    },
+    "FX": {
+      "label": "Third Party",
+      "row4": 0
+    },
+    "GE": {
+      "label": "American",
+      "row4": 0
+    },
+    "GF": {
+      "label": "Democrat",
+      "row4": 0
+    },
+    "GG": {
+      "label": "Whig",
+      "row4": 0
+    },
+    "GH": {
+      "label": "L. Republican",
+      "row4": 0
+    },
+    "GI": {
+      "label": "Populist",
+      "row4": 0
+    },
+    "GJ": {
+      "label": "National",
+      "row4": 0
+    },
+    "GK": {
+      "label": "Progressive",
+      "row4": 0
+    },
+    "GL": {
+      "label": "Agrarian",
+      "row4": 0
+    },
+    "GM": {
+      "label": "Union",
+      "row4": 0
+    },
+    "GN": {
+      "label": "Socialist",
+      "row4": 0
+    },
+    "GO": {
+      "label": "Liberal",
+      "row4": 0
+    },
+    "GP": {
+      "label": "Patriot",
+      "row4": 0
+    },
+    "HY": {
+      "label": "JRepIdeo",
+      "row4": -3,
+      "row5": -3
+    },
+    "IR": {
+      "label": "FedIdeo",
+      "row4": 3,
+      "row5": 3
+    },
+    "JK": {
+      "label": "WhigIdeo",
+      "row5": -3
+    },
+    "KD": {
+      "label": "AmerIdeo",
+      "row5": -3
+    },
+    "KX": {
+      "label": "DemIdeo",
+      "row5": -3
+    },
+    "LQ": {
+      "label": "LRepIdeo",
+      "row5": -7
+    },
+    "MJ": {
+      "label": "PopIdeo",
+      "row5": -10
+    },
+    "NC": {
+      "label": "NatIdeo",
+      "row5": 7
+    },
+    "NV": {
+      "label": "ProgIdeo",
+      "row5": -10
+    },
+    "OO": {
+      "label": "AgrIdeo",
+      "row5": -5
+    },
+    "PH": {
+      "label": "UnionIdeo",
+      "row5": 0
+    },
+    "QA": {
+      "label": "SocIdeo",
+      "row5": -10
+    },
+    "QT": {
+      "label": "LibIdeo",
+      "row5": -3
+    },
+    "RM": {
+      "label": "PatIdeo",
+      "row5": 10
+    }
+  }
+}

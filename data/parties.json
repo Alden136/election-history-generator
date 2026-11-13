@@ -1,0 +1,137 @@
+[
+  {
+    "id": "federalist",
+    "name": "Federalist",
+    "order": 0,
+    "startIdeology": 3,
+    "existsAtStart": true,
+    "tagline": "The party of John Adams and Alexander Hamilton.",
+    "sheetIdeologyColumn": "IR"
+  },
+  {
+    "id": "j-republican",
+    "name": "J. Republican",
+    "order": 1,
+    "startIdeology": -3,
+    "existsAtStart": true,
+    "tagline": "The party of Thomas Jefferson.",
+    "sheetIdeologyColumn": "HY"
+  },
+  {
+    "id": "american",
+    "name": "American",
+    "order": 2,
+    "startIdeology": -3,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "KD"
+  },
+  {
+    "id": "democrat",
+    "name": "Democrat",
+    "order": 3,
+    "startIdeology": -3,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "KX"
+  },
+  {
+    "id": "whig",
+    "name": "Whig",
+    "order": 4,
+    "startIdeology": -3,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "JK"
+  },
+  {
+    "id": "l-republican",
+    "name": "L. Republican",
+    "order": 5,
+    "startIdeology": -7,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "LQ"
+  },
+  {
+    "id": "populist",
+    "name": "Populist",
+    "order": 6,
+    "startIdeology": -10,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "MJ"
+  },
+  {
+    "id": "national",
+    "name": "National",
+    "order": 7,
+    "startIdeology": 7,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "NC"
+  },
+  {
+    "id": "progressive",
+    "name": "Progressive",
+    "order": 8,
+    "startIdeology": -10,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "NV"
+  },
+  {
+    "id": "agrarian",
+    "name": "Agrarian",
+    "order": 9,
+    "startIdeology": -5,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "OO"
+  },
+  {
+    "id": "union",
+    "name": "Union",
+    "order": 10,
+    "startIdeology": 0,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "PH"
+  },
+  {
+    "id": "socialist",
+    "name": "Socialist",
+    "order": 11,
+    "startIdeology": -10,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "QA"
+  },
+  {
+    "id": "liberal",
+    "name": "Liberal",
+    "order": 12,
+    "startIdeology": -3,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "QT"
+  },
+  {
+    "id": "patriot",
+    "name": "Patriot",
+    "order": 13,
+    "startIdeology": 10,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": "RM"
+  },
+  {
+    "id": "third-party",
+    "name": "Third Party",
+    "order": 14,
+    "startIdeology": null,
+    "existsAtStart": false,
+    "tagline": null,
+    "sheetIdeologyColumn": null
+  }
+]

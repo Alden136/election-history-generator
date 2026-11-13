@@ -1,0 +1,8 @@
+{
+  "partyLoyalty": 0.5,
+  "secessionThreshold": 8,
+  "partyVictoryBoost": 15,
+  "crisisBacklash": 5,
+  "potusBacklash": 0.5,
+  "blocSizeMultiplier": 30
+}

@@ -32,6 +32,8 @@ interface MapShapes {
   background: string;
   insets: [number, number, number, number][];
   states: Record<string, MapShape>;
+  /** Virginia including West Virginia, drawn until West Virginia splits off. */
+  wholeVirginia: MapShape;
 }
 
 /**
@@ -68,7 +70,11 @@ function GeoMap({ term, active, selected, fill, kind, label, handlers }: {
   const textColor = (i: number) => kind(i) === 'absent' ? '#91a1b5' : '#131b24';
   const mapShapes = useMapShapes();
   if (!mapShapes) return <div className="geo-map geo-loading" role="status">Loading map…</div>;
-  const SHAPES = mapShapes.states;
+  // West Virginia only exists once Virginia has seceded; until then Virginia is drawn whole.
+  const undivided = !term.grid.expansions.westVirginia;
+  const shapeOf = (code: string): MapShape =>
+    undivided && code === 'VA' ? mapShapes.wholeVirginia : mapShapes.states[code]!;
+  const drawn = (code: string) => !(undivided && code === 'WV');
 
   return <svg className="geo-map" viewBox={`0 0 ${mapShapes.width} ${mapShapes.height}`}
     role="group" aria-label={`${term.election} election results by state`}>
@@ -81,7 +87,8 @@ function GeoMap({ term, active, selected, fill, kind, label, handlers }: {
     {mapShapes.insets.map(([x, y, w, h], n) =>
       <rect key={n} className="geo-inset" x={x} y={y} width={w} height={h} rx={6} />)}
     {STATES.map((state, i) => {
-      const shape = SHAPES[state.code]!;
+      if (!drawn(state.code)) return null;
+      const shape = shapeOf(state.code);
       return <path key={state.code} className="geo-state" d={shape.d} data-kind={kind(i)}
         fill={kind(i) === 'seceded' ? 'url(#seceded-hatch)' : kind(i) === 'absent' ? undefined : fill(i)}
         role="button" tabIndex={0} aria-label={label(i)} aria-pressed={selected === i}
@@ -89,7 +96,7 @@ function GeoMap({ term, active, selected, fill, kind, label, handlers }: {
     })}
     {/* Small states: a leader line and a box in the Atlantic. */}
     {STATES.map((state, i) => {
-      const callout = SHAPES[state.code]!.callout;
+      const callout = shapeOf(state.code).callout;
       if (!callout) return null;
       const [x1, y1, x2, y2] = callout.line;
       const [bx, by, bw, bh] = callout.box;
@@ -102,12 +109,13 @@ function GeoMap({ term, active, selected, fill, kind, label, handlers }: {
       </g>;
     })}
     {STATES.map((state, i) => {
-      const { label: at, labelOutside } = SHAPES[state.code]!;
+      if (!drawn(state.code)) return null;
+      const { label: at, labelOutside } = shapeOf(state.code);
       return at ? <text key={state.code} className="geo-label" x={at[0]} y={at[1] + 5}
         fill={labelOutside ? 'var(--muted)' : textColor(i)}>{state.code}</text> : null;
     })}
     {/* The hovered or selected state, outlined on top of its neighbours. */}
-    {active !== null && <path className="geo-outline" d={SHAPES[STATES[active]!.code]!.d} />}
+    {active !== null && <path className="geo-outline" d={shapeOf(STATES[active]!.code).d} />}
   </svg>;
 }
 

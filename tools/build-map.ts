@@ -15,7 +15,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { geoConicEqualArea, geoPath, type GeoProjection } from 'd3-geo';
-import { feature } from 'topojson-client';
+import { feature, merge } from 'topojson-client';
 import { presimplify, simplify } from 'topojson-simplify';
 import type { Feature, FeatureCollection, Geometry, MultiPolygon, Polygon, Position } from 'geojson';
 import type { GeometryCollection, Topology } from 'topojson-specification';
@@ -249,6 +249,21 @@ const background = collection([
   ...subunits.filter((s) => !gameIds.has(String(s.id))),
 ]);
 
+// ------------------------------------------------------- undivided Virginia
+
+/**
+ * West Virginia only exists in the game once Virginia secedes. Until then the
+ * app draws Virginia whole: one outline merged from both states' shared
+ * topology, so no border shows between them.
+ */
+const wholeVirginiaShape: Feature<MultiPolygon> = {
+  type: 'Feature', properties: {},
+  geometry: merge(topo, topo.objects.subunits.geometries.filter((g) => g.id === 'VA' || g.id === 'WV') as never),
+};
+const wholeVirginiaCore = largestPolygon(main, wholeVirginiaShape);
+const [wvx, wvy] = geoPath(main).centroid(wholeVirginiaCore);
+const wholeVirginia = { d: pathString(main, wholeVirginiaShape), label: [round(wvx + 2), round(wvy + 2)] as [number, number] };
+
 const output = {
   source: 'Natural Earth (public domain) via sane-topojson 50m; Sonora and Chihuahua from Natural Earth 10m admin-1',
   width: WIDTH,
@@ -256,6 +271,8 @@ const output = {
   background: pathString(main, background),
   insets: [akBox, hiBox].map((b) => [round(b.x - 6), round(b.y - 6), round(b.w + 12), round(b.h + 12)]),
   states: shapes,
+  /** Virginia and West Virginia as one state, used before West Virginia splits off. */
+  wholeVirginia,
 };
 
 writeFileSync('src/app/map-shapes.json', `${JSON.stringify(output)}\n`);

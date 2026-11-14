@@ -50,14 +50,23 @@ export function timelineUrl(href: string, { seed, year, corrections, dials }: Ti
   return url;
 }
 
+/** Party colors, deep enough to read on the concrete-grey page. Same hues as before. */
 export const PARTY_COLORS = [
-  '#eda661', '#b49ae8', '#d785b5', '#83aeff', '#dfc46f', '#ed8f91', '#b7cc89',
-  '#a2adc7', '#e7a1e3', '#92c779', '#77d7bd', '#f56d67', '#f0db9a', '#629bec', '#c0c9d1',
+  '#e0832a', '#8a63d2', '#c2468f', '#2f6fd6', '#c9a20f', '#d64541', '#7f9f2f',
+  '#5f6f8f', '#b955b4', '#4e9338', '#16a085', '#a8160f', '#e6bf3a', '#1f4ea8', '#8b8f94',
 ] as const;
 
-export const BLOC_COLORS = ['#ec83a8', '#ba9af2', '#87afff', '#a8b3c5', '#75d4bc', '#e1c16d', '#ed8f91'];
-export const NO_VOTE_COLOR = '#536275';
-export const SECEDED_COLOR = '#b6a0c7';
+export const BLOC_COLORS = ['#c2185b', '#7e57c2', '#2f6fd6', '#6d6a64', '#16a085', '#c9a20f', '#d64541'];
+export const NO_VOTE_COLOR = '#a6a29a';
+export const SECEDED_COLOR = '#6d6a64';
+
+/** Black or white text, whichever reads better on a fill color. */
+export function inkOn(hex: string): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)) as [number, number, number];
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.2 ? '#111111' : '#f4f2ee';
+}
 export const percent = (share: number) => `${(share * 100).toFixed(1)}%`;
 export const signed = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(2)}`;
 

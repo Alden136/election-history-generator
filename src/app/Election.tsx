@@ -6,7 +6,7 @@ import { ideologyLabel } from '../engine/util';
 import type { Timeline } from '../engine/simulate';
 import { Icon } from './Icon';
 import { Party } from './Party';
-import { approximateCount, decidedByCongress, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
+import { approximateCount, decidedByCongress, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 
 const TERRITORIES: Record<keyof Expansions, string> = {
   texas: 'Texas', west: 'Western states', mexico: 'Northern Mexico', canada: 'Canada',
@@ -68,7 +68,7 @@ function GeoMap({ term, active, selected, fill, kind, label, tooltip, handlers }
   const keyboard = (i: number) => (event: KeyboardEvent<SVGElement>) => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handlers(i).onClick!(); }
   };
-  const textColor = (i: number) => kind(i) === 'absent' ? '#91a1b5' : '#131b24';
+  const textColor = (i: number) => kind(i) === 'absent' ? '#4a4741' : kind(i) === 'seceded' ? '#f4f2ee' : inkOn(fill(i));
   const mapShapes = useMapShapes();
   if (!mapShapes) return <div className="geo-map geo-loading" role="status">Loading map…</div>;
   // West Virginia only exists once Virginia has seceded; until then Virginia is drawn whole.
@@ -81,12 +81,12 @@ function GeoMap({ term, active, selected, fill, kind, label, tooltip, handlers }
     role="group" aria-label={`${term.election} election results by state`}>
     <defs>
       <pattern id="seceded-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-        <rect width="6" height="6" fill="#927ba6" /><rect width="2.5" height="6" fill="#c2acd3" />
+        <rect width="6" height="6" fill="#6d6a64" /><rect width="2.5" height="6" fill="#2b2a27" />
       </pattern>
     </defs>
     <path className="geo-background" d={mapShapes.background} />
     {mapShapes.insets.map(([x, y, w, h], n) =>
-      <rect key={n} className="geo-inset" x={x} y={y} width={w} height={h} rx={6} />)}
+      <rect key={n} className="geo-inset" x={x} y={y} width={w} height={h} />)}
     {STATES.map((state, i) => {
       if (!drawn(state.code)) return null;
       const shape = shapeOf(state.code);
@@ -105,7 +105,7 @@ function GeoMap({ term, active, selected, fill, kind, label, tooltip, handlers }
         aria-hidden="true" {...handlers(i)}>
         <title>{tooltip(i)}</title>
         <line x1={x1} y1={y1} x2={x2} y2={y2} />
-        <rect x={bx} y={by} width={bw} height={bh} rx={3}
+        <rect x={bx} y={by} width={bw} height={bh}
           fill={kind(i) === 'seceded' ? 'url(#seceded-hatch)' : kind(i) === 'absent' ? undefined : fill(i)} />
         <text x={bx + bw / 2} y={by + bh / 2 + 4.5} fill={textColor(i)}>{state.code}</text>
       </g>;
@@ -194,6 +194,7 @@ export function ElectionMap({ term }: { term: Term }) {
               gridColumn: state.tile.col + 1,
               gridRow: state.tile.row + 1,
               '--tile-color': fill(i),
+              '--tile-ink': kind(i) === 'party' ? inkOn(fill(i)) : undefined,
             } as CSSProperties;
             return <button key={state.code} type="button" className="tile" data-kind={kind(i)}
               data-active={active === i} aria-pressed={selected === i} style={tileStyle} aria-label={label(i)} title={tooltip(i)} {...handlers(i)}>

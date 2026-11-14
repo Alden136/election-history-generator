@@ -1,10 +1,10 @@
-import { partyName } from '../engine/data';
+import { ELECTIONS, partyName } from '../engine/data';
 import type { Timeline } from '../engine/simulate';
 import { Dot } from './Party';
 import { Icon } from './Icon';
 
 export function Overview({ timeline, openElection }: { timeline: Timeline; openElection: (year: number) => void }) {
-  const { summary, terms, finalPresident } = timeline;
+  const { summary, terms } = timeline;
   const metrics = [
     ['Weirdness score', summary.weirdness, summary.weirdnessLabel.toLowerCase()],
     ['Dictatorships', summary.dictatorships, ''],
@@ -38,10 +38,12 @@ export function Overview({ timeline, openElection }: { timeline: Timeline; openE
         <div className="panel-header"><h3 id="noteworthy-title">Noteworthy presidents</h3></div>
         <div className="notable-grid">
           {notable.map(([label, president]) => {
-            const year = label === 'Most radical' || label === 'In office in 2025'
-              ? terms.find((_, i) => (terms[i + 1]?.termBegan ?? finalPresident.termBegan) ===
-                  (label === 'In office in 2025' ? 2025 : president.termStart))?.election
-              : terms.find((term) => term.termBegan === president.termStart)?.election;
+            // Open the election that put this president in office: the panel below
+            // the map shows the term won in the selected election. A term that
+            // begins in 1789 has no election before it, so open 1792 instead.
+            const start = label === 'In office in 2025' ? 2025 : president.termStart;
+            const year = ELECTIONS.includes(start - 1) ? start - 1
+              : terms.find((term) => term.termBegan === start)?.election;
             return (
               <div className="notable" key={label}>
                 <span className="eyebrow">{label}</span>

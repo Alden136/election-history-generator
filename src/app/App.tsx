@@ -201,7 +201,7 @@ export function App() {
         <Overview timeline={timeline} openElection={openElection} />
         <TermDetails timeline={timeline} term={term} />
       </>}
-      {view === 'history' && <History terms={timeline.terms} year={year} chooseYear={openElection} />}
+      {view === 'history' && <History terms={timeline.terms} final={timeline.finalPresident} year={year} chooseYear={openElection} />}
       {view === 'charts' && <Charts terms={timeline.terms} year={year} chooseYear={chooseYear} />}
       <div hidden={view !== 'statistics'}>
         <Statistics key={timelineKey} seed={seed} settings={settings} preset={timeline.preset} />
@@ -213,7 +213,6 @@ export function App() {
       dismiss={() => { setDialsOpen(false); dialsButton.current?.focus(); }} />}
     <footer className="shell footer">
       <span>Based on WWH’s <cite>Election History Generator</cite> spreadsheet.</span>
-      <span>1792–2064 <span className="footer-divider">/</span> 69 elections</span>
     </footer>
   </>;
 }

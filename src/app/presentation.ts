@@ -1,4 +1,5 @@
-import { ELECTIONS, PARTIES } from '../engine/data';
+import { ELECTIONS, PARTIES, STATES } from '../engine/data';
+import turnout from '../../data/turnout.json';
 import { RULES, type Rule } from '../engine/rules';
 import type { Dials, Term } from '../engine/types';
 import { encodeDials, parseDials } from './dials';
@@ -85,4 +86,35 @@ export function ideologyChartBounds(values: readonly number[]) {
 
 export function decidedByCongress(term: Term): boolean {
   return term.index > 0 && Math.max(...term.electoral) <= 0.5;
+}
+
+/**
+ * Real popular-vote totals. The simulation only produces vote shares, so a
+ * vote count is an estimate: the real total for that year, scaled by this
+ * timeline's electoral votes against the real ones, so annexed or seceded
+ * states count. Years after 2024 are projected; see data/turnout.json.
+ */
+const REAL_STATES = STATES.slice(0, STATES.findIndex((state) => state.code === 'DC') + 1);
+const realTotalVotes = (year: number): number => {
+  const recorded = turnout.votes[String(year) as keyof typeof turnout.votes];
+  if (recorded !== undefined) return recorded;
+  const base = turnout.votes[String(turnout.projectionStart) as keyof typeof turnout.votes];
+  return base * (1 + turnout.projectionGrowthPerYear) ** (year - turnout.projectionStart);
+};
+const realElectoralVotes = (year: number): number =>
+  REAL_STATES.reduce((total, state) => total + (state.realElectoralVotes[year] ?? 0), 0);
+
+/** Estimated popular votes for the winner of an election. */
+export function estimatedWinnerVotes(term: Term, liveElectoralVotes: number): number {
+  const real = realElectoralVotes(term.election);
+  // 1792 has no electoral vote counts in the simulation, so it is not scaled.
+  const scale = liveElectoralVotes > 0 && real > 0 ? liveElectoralVotes / real : 1;
+  return term.winnerPopularShare * realTotalVotes(term.election) * scale;
+}
+
+/** "68.4 million", "1.2 million" or "28,600": rounded to what an estimate can claim. */
+export function approximateCount(votes: number): string {
+  if (votes >= 1e6) return `${(votes / 1e6).toFixed(votes >= 1e7 ? 1 : 2)} million`;
+  const rounded = votes >= 1e4 ? Math.round(votes / 100) * 100 : Math.round(votes / 10) * 10;
+  return rounded.toLocaleString('en-US');
 }

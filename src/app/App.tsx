@@ -149,7 +149,6 @@ export function App() {
       <div className="masthead">
         <div>
           <h1>Election History <em>Generator</em></h1>
-          <p className="masthead-description">Explore 69 presidential elections in one alternate American timeline.</p>
         </div>
         <div className="seed-controls">
           <div className="seed-actions">

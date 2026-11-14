@@ -111,7 +111,6 @@ a { color: inherit; }
 .eyebrow { display: inline-block; color: var(--muted); font: 500 10px/1.35 var(--mono); letter-spacing: .075em; text-transform: uppercase; }
 .masthead h1 { font: 400 clamp(41px, 4.25vw, 69px)/.99 var(--display); letter-spacing: -.023em; }
 .masthead h1 em { color: var(--accent); font-weight: 400; }
-.masthead-description { color: var(--muted); font-size: 14px; line-height: 1.55; margin-top: 12px; }
 .seed-controls { position: relative; padding-bottom: 2px; }
 .seed-actions { display: flex; gap: 8px; align-items: stretch; }
 .seed-form { display: flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: var(--panel); padding: 4px 5px 4px 10px; border-radius: 7px; }
@@ -199,9 +198,6 @@ a { color: inherit; }
 .map-legend span { display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; }
 .map-legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--tile-color); }
 .map-legend i[data-kind='absent'] { background: #192432; border: 1px solid var(--tile-color); }
-.map-readout { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 9px; min-height: 42px; padding: 7px 13px; border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: 11px; line-height: 1.45; }
-.map-readout strong { color: var(--text); }
-.map-readout span + span::before { content: '·'; color: var(--accent); padding-right: 9px; }
 
 .results { display: flex; flex-direction: column; overflow: hidden; }
 .winner { padding: 16px 15px 14px; background: linear-gradient(120deg, color-mix(in srgb, var(--winner) 14%, var(--panel)), var(--panel)); border-bottom: 1px solid var(--line); }
@@ -213,6 +209,8 @@ a { color: inherit; }
 .winner-stats { display: grid; grid-template-columns: 1fr 1fr; margin-top: 12px; gap: 8px; }
 .winner-stats div { padding: 9px 9px 8px; border-radius: 6px; border: 1px solid #ffffff11; background: #0c131c66; }
 .winner-stats dt { color: var(--muted); font-size: 10px; }
+.winner-stats .winner-of { color: var(--muted); font-size: 12px; font-weight: 400; }
+.winner-stats .winner-votes { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
 .winner-stats dd { margin-top: 3px; font: 500 18px var(--mono); }
 .results-parties { padding: 2px 13px 6px; flex: 1; }
 .results-table { width: 100%; border-collapse: collapse; font-size: 11px; }
@@ -362,7 +360,6 @@ th[aria-sort='ascending'] .sort-button svg { transform: rotate(180deg); }
   .main { padding-top: 26px; padding-bottom: 30px; }
   .masthead { margin-bottom: 17px; }
   .masthead h1 { font-size: clamp(37px, 7.8vw, 55px); }
-  .masthead-description { font-size: 12px; margin-top: 8px; }
   .seed-actions { flex-wrap: wrap; }
   .seed-form input { width: 77px; }
   .button { padding-inline: 7px; min-height: 36px; gap: 4px; font-size: 11px; }

@@ -6,7 +6,7 @@ import { ideologyLabel } from '../engine/util';
 import type { Timeline } from '../engine/simulate';
 import { Icon } from './Icon';
 import { Party } from './Party';
-import { decidedByCongress, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed } from './presentation';
+import { approximateCount, decidedByCongress, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 
 const TERRITORIES: Record<keyof Expansions, string> = {
   texas: 'Texas', west: 'Western states', mexico: 'Northern Mexico', canada: 'Canada',
@@ -55,13 +55,14 @@ function useMapShapes(): MapShapes | null {
 }
 
 /** A geographic map of all 64 possible states, from shapes built by tools/build-map.ts. */
-function GeoMap({ term, active, selected, fill, kind, label, handlers }: {
+function GeoMap({ term, active, selected, fill, kind, label, tooltip, handlers }: {
   term: Term;
   active: number | null;
   selected: number | null;
   fill: (i: number) => string;
   kind: (i: number) => string;
   label: (i: number) => string;
+  tooltip: (i: number) => string;
   handlers: (i: number) => Record<string, () => void>;
 }) {
   const keyboard = (i: number) => (event: KeyboardEvent<SVGElement>) => {
@@ -92,7 +93,7 @@ function GeoMap({ term, active, selected, fill, kind, label, handlers }: {
       return <path key={state.code} className="geo-state" d={shape.d} data-kind={kind(i)}
         fill={kind(i) === 'seceded' ? 'url(#seceded-hatch)' : kind(i) === 'absent' ? undefined : fill(i)}
         role="button" tabIndex={0} aria-label={label(i)} aria-pressed={selected === i}
-        onKeyDown={keyboard(i)} {...handlers(i)} />;
+        onKeyDown={keyboard(i)} {...handlers(i)}><title>{tooltip(i)}</title></path>;
     })}
     {/* Small states: a leader line and a box in the Atlantic. */}
     {STATES.map((state, i) => {
@@ -102,6 +103,7 @@ function GeoMap({ term, active, selected, fill, kind, label, handlers }: {
       const [bx, by, bw, bh] = callout.box;
       return <g key={state.code} className="geo-callout" data-kind={kind(i)} data-active={active === i}
         aria-hidden="true" {...handlers(i)}>
+        <title>{tooltip(i)}</title>
         <line x1={x1} y1={y1} x2={x2} y2={y2} />
         <rect x={bx} y={by} width={bw} height={bh} rx={3}
           fill={kind(i) === 'seceded' ? 'url(#seceded-hatch)' : kind(i) === 'absent' ? undefined : fill(i)} />
@@ -155,7 +157,6 @@ export function ElectionMap({ term }: { term: Term }) {
     grid.winners.includes(party) ? [{ color, label: partyName(party), kind: 'party' }] : []);
   const legend = [...parties, { color: NO_VOTE_COLOR, label: 'No vote', kind: 'absent' }];
   if (grid.winners.includes(SECEDED)) legend.push({ color: SECEDED_COLOR, label: 'Seceded', kind: 'seceded' });
-  const activeState = active === null ? null : STATES[active]!;
 
   const fill = (i: number) => {
     const winner = grid.winners[i]!;
@@ -164,6 +165,9 @@ export function ElectionMap({ term }: { term: Term }) {
   const kind = (i: number) => grid.winners[i] === SECEDED ? 'seceded' : grid.winners[i] === NO_VOTE ? 'absent' : 'party';
   const label = (i: number) =>
     `${STATES[i]!.name}: ${stateResult(term, i)}${term.index ? `, ${grid.votes[i]} electoral votes` : ''}`;
+  /** Hover text: the state's result, electoral votes and lean (when it has electoral votes). */
+  const tooltip = (i: number) =>
+    `${label(i)}${term.index > 0 && grid.votes[i]! > 0 ? `, lean ${signed(grid.lean[i]!)}` : ''}`;
   const handlers = (i: number) => ({
     onMouseEnter: () => setHovered(i), onMouseLeave: () => setHovered(null),
     onFocus: () => setFocused(i), onBlur: () => setFocused(null),
@@ -183,7 +187,7 @@ export function ElectionMap({ term }: { term: Term }) {
     </div>
     <div className="map-stage" data-style={style}>
       {style === 'map'
-        ? <GeoMap term={term} active={active} selected={selected} fill={fill} kind={kind} label={label} handlers={handlers} />
+        ? <GeoMap term={term} active={active} selected={selected} fill={fill} kind={kind} label={label} tooltip={tooltip} handlers={handlers} />
         : <div className="tile-map" role="group" aria-label={`${term.election} election results by state`}>
           {STATES.map((state, i) => {
             const tileStyle = {
@@ -192,7 +196,7 @@ export function ElectionMap({ term }: { term: Term }) {
               '--tile-color': fill(i),
             } as CSSProperties;
             return <button key={state.code} type="button" className="tile" data-kind={kind(i)}
-              data-active={active === i} aria-pressed={selected === i} style={tileStyle} aria-label={label(i)} {...handlers(i)}>
+              data-active={active === i} aria-pressed={selected === i} style={tileStyle} aria-label={label(i)} title={tooltip(i)} {...handlers(i)}>
               <span>{state.code}</span>
             </button>;
           })}
@@ -201,19 +205,13 @@ export function ElectionMap({ term }: { term: Term }) {
     <div className="map-legend" aria-label="Map legend">
       {legend.map(({ color, label, kind }) => <span key={label}><i data-kind={kind} style={{ '--tile-color': color } as CSSProperties} />{label}</span>)}
     </div>
-    <div className="map-readout" aria-live="polite">
-      {activeState && active !== null ? <>
-        <strong>{activeState.name}</strong><span>{stateResult(term, active)}</span>
-        {term.index > 0 && <span>{grid.votes[active]} EV{grid.winners[active] === SECEDED ? ' withheld' : ''}</span>}
-        {term.index > 0 && grid.votes[active]! > 0 && <span>Lean {signed(grid.lean[active]!)}</span>}
-      </> : <>{term.index === 0 ? 'The workbook records state winners only for 1792.' :
-        `${totals.live} eligible electoral votes${totals.seceded ? ` · ${totals.seceded} withheld by secession` : ''}`}</>}
-    </div>
   </section>;
 }
 
 export function ElectionResults({ term, winnerIdeology }: { term: Term; winnerIdeology: number }) {
   const results = partyResults(term);
+  // Electoral votes still cast (seceded states excluded). The sheet records none for 1792.
+  const live = electoralTotals(term.grid).live;
   return <section className="panel results" aria-labelledby="results-title">
     <div className="panel-header"><h2 id="results-title">Election results</h2></div>
     <div className="winner" style={{ '--winner': PARTY_COLORS[term.winnerParty] } as CSSProperties}>
@@ -223,8 +221,12 @@ export function ElectionResults({ term, winnerIdeology }: { term: Term; winnerId
       <h3>{term.winnerName}</h3>
       <p className="winner-ideology">{ideologyLabel(winnerIdeology)} <span>{signed(winnerIdeology)}</span></p>
       <dl className="winner-stats">
-        <div><dt>Electoral College</dt><dd>{percent(term.winnerElectoralShare)}</dd></div>
-        <div><dt>Popular vote</dt><dd>{percent(term.winnerPopularShare)}</dd></div>
+        <div><dt>Electoral votes</dt><dd>{live > 0
+          ? <>{Math.round(term.winnerElectoralShare * live)}<small className="winner-of"> of {live}</small></>
+          : percent(term.winnerElectoralShare)}</dd></div>
+        <div><dt>Popular vote</dt><dd>{percent(term.winnerPopularShare)}</dd>
+          <small className="winner-votes" title="Estimated from real US turnout for this year, scaled to this timeline's electoral votes">
+            ≈ {approximateCount(estimatedWinnerVotes(term, live))} votes</small></div>
       </dl>
     </div>
     <div className="results-parties">

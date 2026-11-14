@@ -226,11 +226,15 @@ describe('preset replay', () => {
     expect(custom).toEqual(simulate(replay.seed, { ...DEFAULT_SETTINGS, corrections: replay.corrections }));
   });
 
-  it('accepts legacy links, deduplicates known rules, and discards unknown rules', () => {
-    expect(readLocation('?seed=7&year=1960')).toEqual({ seed: 7, year: 1960, corrections: [], dials: DEFAULT_DIALS });
+  it('defaults links to Corrected, writes Faithful as none, and discards unknown rules', () => {
+    expect(readLocation('?seed=7&year=1960')).toEqual({ seed: 7, year: 1960, corrections: RULES, dials: DEFAULT_DIALS });
+    expect(readLocation('?seed=7&year=1960&rules=none').corrections).toEqual([]);
     const current = readLocation('?seed=7&year=1960&rules=unknown,whig-loyalty,whig-loyalty');
     expect(current.corrections).toEqual(['whig-loyalty']);
-    const reset = timelineUrl('https://example.test/?rules=whig-loyalty', { ...current, corrections: [] });
-    expect(reset.searchParams.has('rules')).toBe(false);
+    const faithful = timelineUrl('https://example.test/?rules=whig-loyalty', { ...current, corrections: [] });
+    expect(faithful.searchParams.get('rules')).toBe('none');
+    expect(readLocation(faithful.search).corrections).toEqual([]);
+    const corrected = timelineUrl(faithful.href, { ...current, corrections: RULES });
+    expect(corrected.searchParams.has('rules')).toBe(false);
   });
 });

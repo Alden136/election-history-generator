@@ -25,7 +25,9 @@ export function readLocation(search: string): TimelineLocation {
   const params = new URLSearchParams(search);
   const seed = parseSeed(params.get('seed') ?? '');
   const year = Number(params.get('year'));
-  const selected = new Set(params.get('rules')?.split(',') ?? []);
+  // No rules in the address means the default, Corrected; Faithful is written as rules=none.
+  const rules = params.get('rules');
+  const selected = new Set(rules === null ? RULES : rules.split(','));
   return {
     seed: seed ?? DEFAULT_SEED,
     year: ELECTIONS.includes(year) ? year : DEFAULT_YEAR,
@@ -39,8 +41,8 @@ export function timelineUrl(href: string, { seed, year, corrections, dials }: Ti
   url.searchParams.set('seed', String(seed));
   url.searchParams.set('year', String(year));
   const selected = RULES.filter((rule) => corrections.includes(rule));
-  if (selected.length) url.searchParams.set('rules', selected.join(','));
-  else url.searchParams.delete('rules');
+  if (selected.length === RULES.length) url.searchParams.delete('rules');
+  else url.searchParams.set('rules', selected.length ? selected.join(',') : 'none');
   const adjusted = encodeDials(dials);
   if (adjusted) url.searchParams.set('dials', adjusted);
   else url.searchParams.delete('dials');

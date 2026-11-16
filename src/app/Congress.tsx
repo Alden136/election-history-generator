@@ -108,8 +108,5 @@ export function Congress({ term }: { term: Term }) {
       <ChamberPanel title="House of Representatives" chamber={house} order={order} />
       <ChamberPanel title="Senate" chamber={senate} order={order} />
     </div>
-    <p className="chamber-note">The simulation computes one combined Congress. It is split here with the House leaning
-      toward each party's national vote and the Senate toward the states it carried; the two average back to the
-      simulated Congress. Each state has two senators and its electoral votes minus two in the House.</p>
   </section>;
 }

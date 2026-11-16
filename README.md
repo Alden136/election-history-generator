@@ -2,6 +2,8 @@
 
 A standalone web app that generates an alternate history of American presidential elections, 1792 to 2064. It rebuilds **WWH's Election History Generator** spreadsheet as a program: every timeline comes from a seed, so any history can be replayed and shared by link.
 
+**Try it online: <https://alden136.github.io/election-history-generator/>**
+
 Based on WWH's *Election History Generator* Google Sheets spreadsheet. All credit for the simulation design goes to WWH.
 
 ## What it does
@@ -11,6 +13,8 @@ Based on WWH's *Election History Generator* Google Sheets spreadsheet. All credi
 - Offers a **Faithful** mode that reproduces the spreadsheet exactly, quirks included, and a **Corrected** mode with 15 individual fixes.
 
 ## Running it
+
+No install is needed to use the app: open the link above. To run it on your own computer:
 
 Requires [Node.js](https://nodejs.org/) 20 or later.
 
@@ -29,6 +33,10 @@ Then open the address it prints (usually http://localhost:5173).
 | `npm run seeds -- 10000 1 reference/sheet-refreshes.csv` | Run 10,000 timelines and compare them with recorded spreadsheet runs |
 | `npm run extract` | Re-extract the data files from the frozen spreadsheet snapshot |
 | `npm run build-map` | Rebuild the map shapes |
+
+## Publishing
+
+Every push to `main` runs the tests, builds the site and publishes it to GitHub Pages ([workflow](.github/workflows/deploy.yml)).
 
 ## How it was checked
 

@@ -8,5 +8,7 @@ export default defineConfig({
   server: { port: 5173, strictPort: true },
   test: {
     include: ['tests/**/*.test.ts'],
+    // Some tests run hundreds of timelines; allow for slow build machines.
+    testTimeout: 60_000,
   },
 });

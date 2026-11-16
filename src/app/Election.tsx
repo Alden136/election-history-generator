@@ -81,7 +81,7 @@ function GeoMap({ term, active, selected, fill, kind, label, tooltip, handlers }
     role="group" aria-label={`${term.election} election results by state`}>
     <defs>
       <pattern id="seceded-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-        <rect width="6" height="6" fill="#6d6a64" /><rect width="2.5" height="6" fill="#2b2a27" />
+        <rect width="6" height="6" fill={SECEDED_COLOR} /><rect width="2.5" height="6" fill="#2b2a27" />
       </pattern>
     </defs>
     <path className="geo-background" d={mapShapes.background} />

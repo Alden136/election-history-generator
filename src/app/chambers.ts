@@ -92,8 +92,7 @@ export function chambers(term: Term): Chambers {
   // The simulated Congress is half last term's Congress and half this election
   // (national support and states won, equally). Only that new half leans: the
   // House toward support, the Senate toward states won.
-  const lean = term.congress.map((share, p) => {
-    if (share <= 0) return 0;
+  const lean = term.congress.map((_, p) => {
     const stateShare = representedStates > 0 ? statesWon[p]! / representedStates : 0;
     return (term.support[p]! - stateShare) / 4;
   });

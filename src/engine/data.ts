@@ -37,7 +37,6 @@ export const ELECTIONS: number[] = electionsJson.elections;
 export const CENSUS_ELECTIONS: ReadonlySet<number> = new Set(electionsJson.censusElections);
 export const URBAN_DIRECTION: Record<string, string | undefined> = electionsJson.urbanDirection;
 export const DEFAULT_DIALS: Dials = dialsJson;
-export const CANDIDATE_BANDS = candidatesJson.bands;
 export const CANDIDATES: Record<string, string[] | undefined> = candidatesJson.byElection;
 export const START_BLOCS = initialJson.blocs;
 export const START_COURT: (number | null)[] = initialJson.court;

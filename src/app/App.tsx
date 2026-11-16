@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { ELECTIONS } from '../engine/data';
 import { simulate } from '../engine/simulate';
 import { Charts } from './Charts';
+import { Congress } from './Congress';
 import { DialSettings } from './DialSettings';
 import { encodeDials, modifiedDials } from './dials';
 import { downloadTimeline } from './export';
@@ -197,6 +198,7 @@ export function App() {
           <ElectionMap key={`${timelineKey}/${year}`} term={term} />
           <ElectionResults term={term} winnerIdeology={timeline.terms[term.index + 1]?.potusIdeology ?? timeline.finalPresident.ideology} />
         </div>
+        <Congress term={term} />
         <Overview timeline={timeline} openElection={openElection} />
         <TermDetails timeline={timeline} term={term} />
       </>}

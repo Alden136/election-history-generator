@@ -7,6 +7,7 @@ import { DialSettings } from './DialSettings';
 import { encodeDials, modifiedDials } from './dials';
 import { downloadTimeline } from './export';
 import { ElectionMap, ElectionResults, TermDetails, YearPicker } from './Election';
+import { Finder } from './Finder';
 import { ElectionRail, History } from './History';
 import { Icon } from './Icon';
 import { Overview } from './Overview';
@@ -20,10 +21,11 @@ import { MAX_SEED, parseSeed, readLocation, timelineUrl, type TimelineLocation }
 import './styles.css';
 
 const views = [
-  { id: 'election', label: 'Election map', icon: 'map' },
-  { id: 'history', label: 'Political history', icon: 'history' },
-  { id: 'charts', label: 'Trends', icon: 'chart' },
-  { id: 'statistics', label: 'Statistics', icon: 'stats' },
+  { id: 'election', label: 'Election map', short: 'Map', icon: 'map' },
+  { id: 'history', label: 'Political history', short: 'History', icon: 'history' },
+  { id: 'charts', label: 'Trends', short: 'Trends', icon: 'chart' },
+  { id: 'statistics', label: 'Statistics', short: 'Stats', icon: 'stats' },
+  { id: 'finder', label: 'Finder', short: 'Finder', icon: 'search' },
 ] as const;
 type View = typeof views[number]['id'];
 
@@ -149,6 +151,14 @@ export function App() {
     navigate(next);
   }
 
+  function openFound(next: TimelineLocation) {
+    setDraft(String(next.seed));
+    setError('');
+    setPlaying(false);
+    navigate(next);
+    openView('election');
+  }
+
   async function share() {
     const request = ++shareRequest.current;
     window.clearTimeout(shareTimer.current);
@@ -170,7 +180,8 @@ export function App() {
           <span>Election<span className="brand-accent"> Simulator</span></span></button>
         <nav aria-label="Main navigation">
           {views.map((item) => <button type="button" key={item.id} aria-current={view === item.id ? 'page' : undefined}
-            onClick={() => openView(item.id)}><Icon name={item.icon} />{item.label}</button>)}
+            aria-label={item.label} onClick={() => openView(item.id)}><Icon name={item.icon} />
+            <span className="nav-full">{item.label}</span><span className="nav-short">{item.short}</span></button>)}
         </nav>
         <span className="topbar-range">1792 <i /> 2064</span>
       </div>
@@ -241,6 +252,10 @@ export function App() {
       {view === 'charts' && <Charts terms={timeline.terms} year={year} chooseYear={chooseYear} />}
       <div hidden={view !== 'statistics'}>
         <Statistics key={timelineKey} seed={seed} settings={settings} preset={timeline.preset} />
+      </div>
+      {/* Kept mounted so a search carries on while another page is open. */}
+      <div hidden={view !== 'finder'}>
+        <Finder settings={settings} preset={timeline.preset} year={year} openTimeline={openFound} />
       </div>
     </main>
     {rulesOpen && <RuleSettings corrections={corrections} apply={(selected) => navigate({ corrections: selected })}

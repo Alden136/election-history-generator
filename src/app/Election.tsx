@@ -1,17 +1,13 @@
 import { useEffect, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { ELECTIONS, partyName, STATES } from '../engine/data';
 import { electoralTotals } from '../engine/states';
-import { NO_VOTE, SECEDED, type Expansions, type Term } from '../engine/types';
+import { NO_VOTE, SECEDED, type Term } from '../engine/types';
 import { ideologyLabel } from '../engine/util';
 import type { Timeline } from '../engine/simulate';
 import { Icon } from './Icon';
 import { Party } from './Party';
 import { approximateCount, decidedByCongress, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
-
-const TERRITORIES: Record<keyof Expansions, string> = {
-  texas: 'Texas', west: 'Western states', mexico: 'Northern Mexico', canada: 'Canada',
-  quebec: 'Quebec', puertoRico: 'Puerto Rico', cuba: 'Cuba', westVirginia: 'West Virginia',
-};
+import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
 
 type MapStyle = 'map' | 'tiles';
 const MAP_STYLE_KEY = 'election-simulator:map-style';
@@ -265,8 +261,7 @@ export function TermDetails({ timeline, term }: { timeline: Timeline; term: Term
   const final = timeline.finalPresident;
   const began = next?.termBegan ?? final.termBegan;
   const expansions = next?.grid.expansions ?? timeline.finalExpansions;
-  const territories = (Object.keys(TERRITORIES) as (keyof Expansions)[])
-    .filter((territory) => expansions[territory]).map((territory) => TERRITORIES[territory]);
+  const territories = TERRITORIES.filter((territory) => expansions[territory]).map((territory) => TERRITORY_NAMES[territory]);
   const ideology = next?.potusIdeology ?? final.ideology;
   const descriptor = next ? next.descriptor : final.descriptor;
   const ending = next

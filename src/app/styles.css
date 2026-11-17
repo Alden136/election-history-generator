@@ -450,7 +450,7 @@ th[aria-sort='ascending'] .sort-button svg { transform: rotate(180deg); }
 html:has(.rule-dialog[open]) { overflow: hidden; }
 .rule-dialog { width: min(580px, calc(100% - 28px)); height: min(740px, calc(100dvh - 28px)); max-height: calc(100% - 28px); padding: 0; color: var(--text); background-color: var(--panel); background-image: var(--grain); border: 3px solid var(--line); box-shadow: 10px 10px 0 #141414; overflow: hidden; }
 .rule-dialog::backdrop { background: #2b2a27b8; }
-.rule-dialog form { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+.rule-dialog > form { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
 .rule-heading { padding: 18px 20px 15px; border-bottom: 3px solid var(--line); background: var(--raised); }
 .rule-heading h2 { font: 900 34px/.95 var(--display); font-stretch: 125%; letter-spacing: -.02em; text-transform: uppercase; }
 .rule-heading p { color: var(--muted); margin-top: 7px; font-size: 13px; font-weight: 600; }
@@ -481,6 +481,28 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 .timeline-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 16px; }
 .timeline-tools .rules-button { white-space: nowrap; }
 .dial-dialog { height: min(740px, calc(100dvh - 28px)); }
+/* Saved timelines dialog */
+.saved-dialog { height: min(640px, calc(100dvh - 28px)); }
+.saved-layout { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+.saved-form { display: grid; gap: 6px; margin-top: 14px; }
+.saved-form label { font: 800 12px var(--sans); text-transform: uppercase; letter-spacing: .04em; }
+.saved-form > div { display: flex; gap: 8px; }
+.saved-form input { flex: 1; min-width: 0; min-height: 38px; padding: 6px 10px; border: 2px solid var(--line); background: #ece9e3; color: var(--text); font: 600 14px var(--sans); }
+.saved-form input::placeholder { color: var(--muted); }
+.saved-form .button { min-height: 38px; }
+.rule-heading .saved-form small { color: var(--muted); font-size: 12px; font-weight: 600; }
+.saved-empty { margin: 0; padding: 22px 20px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.saved-list { margin: 0; padding: 0 20px; list-style: none; }
+.saved-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--hair); }
+.saved-list li:last-child { border-bottom: 0; }
+.saved-list li[aria-current='true'] { box-shadow: inset 6px 0 0 var(--accent); padding-left: 14px; }
+.saved-list li > div { display: grid; gap: 3px; min-width: 0; }
+.saved-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 14px var(--sans); }
+.saved-list small { color: var(--muted); font: 500 11px var(--mono); }
+.saved-list .button { min-height: 36px; }
+.saved-actions { align-items: center; justify-content: space-between; }
+.saved-actions p { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; font-size: 12px; font-weight: 600; }
+.saved-actions .text-button { font: 800 12px var(--sans); text-transform: uppercase; text-decoration: underline 2px; text-underline-offset: 3px; }
 .dial-list { padding: 0 20px; }
 .dial-row { display: grid; gap: 8px; padding: 13px 0; border-bottom: 1px solid var(--hair); }
 .dial-row:last-child { border-bottom: 0; }

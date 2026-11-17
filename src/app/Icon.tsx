@@ -19,6 +19,7 @@ const paths = {
   link: <><path d="m8 12 4-4M7.5 14.5l-1 1a3 3 0 0 1-4-4l3-3a3 3 0 0 1 4 0m1-3 1-1a3 3 0 0 1 4 4l-3 3a3 3 0 0 1-4 0" /></>,
   check: <path d="m4 10 4 4 8-8" />,
   close: <path d="m5 5 10 10m0-10L5 15" />,
+  bookmark: <path d="M5.5 3h9v14L10 13.5 5.5 17z" />,
   search: <><circle cx="8.5" cy="8.5" r="4.5" /><path d="m12 12 4 4" /></>,
 } satisfies Record<string, ReactNode>;
 

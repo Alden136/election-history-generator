@@ -12,6 +12,8 @@ import { Icon } from './Icon';
 import { Overview } from './Overview';
 import { Playback } from './Playback';
 import { StatePanel } from './StatePanel';
+import { SavedTimelines } from './SavedTimelines';
+import { addSaved, loadSaved, locationOf, removeSaved, SAVED_KEY, writeSaved, type SavedTimeline } from './saved';
 import { Statistics } from './Statistics';
 import { PRESET_LABELS, RuleSettings } from './RuleSettings';
 import { MAX_SEED, parseSeed, readLocation, timelineUrl, type TimelineLocation } from './presentation';
@@ -33,6 +35,9 @@ export function App() {
   const dialsButton = useRef<HTMLButtonElement>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
   const rulesButton = useRef<HTMLButtonElement>(null);
+  const [savedOpen, setSavedOpen] = useState(false);
+  const savedButton = useRef<HTMLButtonElement>(null);
+  const [saved, setSaved] = useState(() => loadSaved());
   const [draft, setDraft] = useState(String(seed));
   const [view, setView] = useState<View>('election');
   // The state whose history panel is open. It stays open while the year or seed changes.
@@ -68,6 +73,19 @@ export function App() {
       window.clearTimeout(shareTimer.current);
     };
   }, []);
+
+  // Keep the saved list in step when another tab changes it.
+  useEffect(() => {
+    const sync = (event: StorageEvent) => { if (event.key === SAVED_KEY || event.key === null) setSaved(loadSaved()); };
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, []);
+
+  /** Stores a new saved list; the list on screen changes either way, but false means it will not last. */
+  function storeSaved(next: SavedTimeline[]): boolean {
+    setSaved(next);
+    return writeSaved(next);
+  }
 
   const navigate = useCallback((change: Partial<TimelineLocation>, replace = false) => {
     const nextLocation = { ...location, ...change };
@@ -123,6 +141,14 @@ export function App() {
     navigate({ seed: next });
   }
 
+  function openSaved(item: SavedTimeline) {
+    const next = locationOf(item);
+    setDraft(String(next.seed));
+    setError('');
+    setPlaying(false);
+    navigate(next);
+  }
+
   async function share() {
     const request = ++shareRequest.current;
     window.clearTimeout(shareTimer.current);
@@ -176,6 +202,10 @@ export function App() {
               onClick={() => { setPlaying(false); setDialsOpen(true); }}>
               <Icon name="rules" size={15} /><span>Dials</span>{adjusted > 0 && <strong>{adjusted} adjusted</strong>}
             </button>
+            <button ref={savedButton} className="rules-button" type="button" aria-haspopup="dialog"
+              onClick={() => { setPlaying(false); setSavedOpen(true); }}>
+              <Icon name="bookmark" size={15} /><span>Saved</span>{saved.length > 0 && <strong>{saved.length}</strong>}
+            </button>
             <button className="rules-button" type="button" onClick={() => downloadTimeline(timeline, dials)}>
               <Icon name="download" size={15} />Export CSV
             </button>
@@ -217,6 +247,12 @@ export function App() {
       dismiss={() => { setRulesOpen(false); rulesButton.current?.focus(); }} />}
     {dialsOpen && <DialSettings dials={dials} apply={(next) => navigate({ dials: next })}
       dismiss={() => { setDialsOpen(false); dialsButton.current?.focus(); }} />}
+    {savedOpen && <SavedTimelines saved={saved} location={location}
+      save={(name) => storeSaved(addSaved(saved, name, location))}
+      open={openSaved}
+      remove={(id) => storeSaved(removeSaved(saved, id))}
+      restore={(item, index) => storeSaved([...saved.slice(0, index), item, ...saved.slice(index)])}
+      dismiss={() => { setSavedOpen(false); savedButton.current?.focus(); }} />}
     <footer className="shell footer">
       <span>Based on WWH’s <cite>Election History Generator</cite> spreadsheet.</span>
     </footer>

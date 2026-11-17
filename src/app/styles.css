@@ -361,6 +361,21 @@ th[aria-sort='ascending'] .sort-button svg { transform: rotate(180deg); }
 .footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-top: 6px solid var(--line); padding-block: 16px 24px; color: var(--muted); font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; }
 .footer cite { font-style: normal; color: var(--text); }
 
+/* Below 1160px the brand, navigation and year range no longer fit on one line,
+   so the navigation takes its own full-width row. --gutter is the page margin. */
+@media (max-width: 1160px) {
+  .topbar { --gutter: 32px; }
+  .topbar-inner { display: flex; flex-wrap: wrap; gap: 0 12px; min-height: auto; padding-top: 8px; }
+  .brand { min-height: 42px; }
+  .topbar-range { margin-left: auto; }
+  .topbar nav { order: 1; width: calc(100% + 2 * var(--gutter)); margin-inline: calc(-1 * var(--gutter)); min-height: 46px; justify-content: stretch; border-top: 1px solid #3a3835; }
+  .topbar nav button { flex: 1; justify-content: center; border-left: 0; border-right: 1px solid #3a3835; }
+}
+/* Below 1100px the title and the seed controls no longer fit side by side. */
+@media (max-width: 1100px) {
+  .masthead { align-items: flex-start; flex-direction: column; gap: 18px; padding-bottom: 22px; }
+  .seed-message { position: static; }
+}
 @media (max-width: 1210px) {
   .shell { width: calc(100% - 64px); }
   .election-layout { grid-template-columns: 190px minmax(0, 1fr) 270px; gap: 14px; }
@@ -371,8 +386,7 @@ th[aria-sort='ascending'] .sort-button svg { transform: rotate(180deg); }
 }
 @media (max-width: 1000px) {
   .shell { width: calc(100% - 48px); }
-  .masthead { align-items: flex-start; flex-direction: column; gap: 18px; padding-bottom: 22px; }
-  .seed-message { position: static; }
+  .topbar { --gutter: 24px; }
   .election-layout { grid-template-columns: minmax(0, 1fr) 270px; }
   .rail { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .rail .panel-header { display: none; }
@@ -385,11 +399,10 @@ th[aria-sort='ascending'] .sort-button svg { transform: rotate(180deg); }
 @media (max-width: 700px) {
   .shell { width: calc(100% - 28px); }
   :root { --slab: 4px 4px 0 #141414; }
-  .topbar-inner { display: flex; flex-wrap: wrap; gap: 0 12px; min-height: auto; padding-top: 8px; }
+  .topbar { --gutter: 14px; }
   .brand { min-height: 38px; }
-  .topbar-range { margin-left: auto; }
-  .topbar nav { order: 1; width: calc(100% + 28px); margin-inline: -14px; min-height: 42px; justify-content: stretch; border-top: 1px solid #3a3835; }
-  .topbar nav button { flex: 1; justify-content: center; padding: 0 4px; gap: 5px; font-size: 10px; border-left: 0; border-right: 1px solid #3a3835; }
+  .topbar nav { min-height: 42px; }
+  .topbar nav button { padding: 0 4px; gap: 5px; font-size: 10px; }
   .topbar nav button svg { width: 14px; }
   .main { padding-top: 24px; padding-bottom: 30px; }
   .masthead { margin-bottom: 18px; border-bottom-width: 4px; }
@@ -528,6 +541,41 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 }
 
 /* Congress: House and Senate seating charts */
+/* State history panel: opens when a state is clicked. A full-width row under the map and results;
+   on a phone, where the layout is one column, it sits straight after the map. */
+.state-panel { grid-column: 1 / -1; order: 1; scroll-margin-block: 12px; }
+.state-header-tools { display: flex; align-items: center; gap: 12px; }
+.state-panel .panel-header .icon-button { width: 30px; height: 30px; box-shadow: none; border-color: #55524c; color: #141414; }
+.state-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; background: var(--line); }
+.state-stats > div { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 14px 15px; background-color: var(--panel); background-image: var(--grain); }
+.state-stats dd { display: flex; align-items: center; gap: 6px; font: 800 15px var(--sans); }
+.state-stats small, .state-chart-heading small { color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.45; }
+.state-chart { padding: 14px 15px 12px; border-top: 3px solid var(--line); }
+.state-chart-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 10px; }
+.state-columns, .state-axis { display: grid; grid-template-columns: repeat(69, minmax(0, 1fr)); column-gap: 1px; }
+.state-col { display: grid; grid-template-rows: 78px 24px; row-gap: 3px; min-width: 0; padding: 0; border: 0; background: none; }
+.state-bar { align-self: end; background: #141414; }
+.state-cell { background: var(--tile-color); }
+.state-cell[data-kind='absent'] { background: none; box-shadow: inset 0 0 0 1px var(--hair); }
+.state-cell[data-kind='seceded'], .state-legend i[data-kind='seceded'] { background: repeating-linear-gradient(135deg, #6d6a64 0 4px, #2b2a27 4px 7px); }
+.state-col:hover .state-bar, .state-col[aria-current='true'] .state-bar { background: var(--accent); }
+.state-col:hover .state-cell, .state-col[aria-current='true'] .state-cell { position: relative; z-index: 1; outline: 3px solid var(--accent); }
+.state-col[aria-current='true'] .state-cell { outline-color: #141414; box-shadow: 0 0 0 5px var(--accent); }
+.state-axis { margin-top: 7px; color: var(--muted); font: 500 10px var(--mono); }
+.state-axis span { white-space: nowrap; }
+.state-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 0; padding: 0; list-style: none; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.state-legend li { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.state-legend i { width: 9px; height: 9px; box-shadow: inset 0 0 0 1px var(--hair); }
+@media (max-width: 1000px) { .state-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .state-panel { order: 0; }
+  .state-columns, .state-axis { column-gap: 0; }
+  .state-col { grid-template-rows: 60px 22px; }
+}
+@media (max-width: 560px) {
+  .state-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .state-header-tools .panel-count { display: none; }
+}
 .congress { margin-top: 34px; }
 .chambers { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: stretch; }
 .chamber { display: flex; flex-direction: column; }

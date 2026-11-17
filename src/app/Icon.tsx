@@ -18,6 +18,7 @@ const paths = {
   stats: <path d="M3 17h14M5 14V9m5 5V4m5 10V7" />,
   link: <><path d="m8 12 4-4M7.5 14.5l-1 1a3 3 0 0 1-4-4l3-3a3 3 0 0 1 4 0m1-3 1-1a3 3 0 0 1 4 4l-3 3a3 3 0 0 1-4 0" /></>,
   check: <path d="m4 10 4 4 8-8" />,
+  close: <path d="m5 5 10 10m0-10L5 15" />,
   search: <><circle cx="8.5" cy="8.5" r="4.5" /><path d="m12 12 4 4" /></>,
 } satisfies Record<string, ReactNode>;
 

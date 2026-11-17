@@ -11,6 +11,7 @@ import { ElectionRail, History } from './History';
 import { Icon } from './Icon';
 import { Overview } from './Overview';
 import { Playback } from './Playback';
+import { StatePanel } from './StatePanel';
 import { Statistics } from './Statistics';
 import { PRESET_LABELS, RuleSettings } from './RuleSettings';
 import { MAX_SEED, parseSeed, readLocation, timelineUrl, type TimelineLocation } from './presentation';
@@ -34,6 +35,8 @@ export function App() {
   const rulesButton = useRef<HTMLButtonElement>(null);
   const [draft, setDraft] = useState(String(seed));
   const [view, setView] = useState<View>('election');
+  // The state whose history panel is open. It stays open while the year or seed changes.
+  const [selectedState, setSelectedState] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'manual'>('idle');
   const shareTimer = useRef<number | undefined>(undefined);
@@ -195,7 +198,9 @@ export function App() {
         <Playback year={year} playing={playing} setPlaying={setPlaying} chooseYear={chooseYear} advance={advance} />
         <div className="election-layout">
           <ElectionRail terms={timeline.terms} year={year} chooseYear={chooseYear} openHistory={() => openView('history')} />
-          <ElectionMap key={`${timelineKey}/${year}`} term={term} />
+          <ElectionMap key={`${timelineKey}/${year}`} term={term} selected={selectedState} select={setSelectedState} />
+          {selectedState !== null && <StatePanel terms={timeline.terms} state={selectedState} year={year}
+            chooseYear={chooseYear} close={() => setSelectedState(null)} />}
           <ElectionResults term={term} winnerIdeology={timeline.terms[term.index + 1]?.potusIdeology ?? timeline.finalPresident.ideology} />
         </div>
         <Congress term={term} />

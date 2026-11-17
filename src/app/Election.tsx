@@ -117,7 +117,7 @@ function GeoMap({ term, active, selected, fill, kind, label, tooltip, handlers }
         fill={labelOutside ? 'var(--muted)' : textColor(i)}>{state.code}</text> : null;
     })}
     {/* The hovered or selected state, outlined on top of its neighbours. */}
-    {active !== null && <path className="geo-outline" d={shapeOf(STATES[active]!.code).d} />}
+    {active !== null && drawn(STATES[active]!.code) && <path className="geo-outline" d={shapeOf(STATES[active]!.code).d} />}
   </svg>;
 }
 
@@ -141,10 +141,14 @@ function stateResult(term: Term, index: number): string {
   return winner === NO_VOTE || winner === undefined ? 'No vote' : partyName(winner);
 }
 
-export function ElectionMap({ term }: { term: Term }) {
+export function ElectionMap({ term, selected, select }: {
+  term: Term;
+  /** The state whose history panel is open, if any. */
+  selected: number | null;
+  select: (state: number | null) => void;
+}) {
   const [hovered, setHovered] = useState<number | null>(null);
   const [focused, setFocused] = useState<number | null>(null);
-  const [selected, setSelected] = useState<number | null>(null);
   const active = hovered ?? focused ?? selected;
   const [style, setStyle] = useState<MapStyle>(readMapStyle);
   const chooseStyle = (next: MapStyle) => {
@@ -171,7 +175,7 @@ export function ElectionMap({ term }: { term: Term }) {
   const handlers = (i: number) => ({
     onMouseEnter: () => setHovered(i), onMouseLeave: () => setHovered(null),
     onFocus: () => setFocused(i), onBlur: () => setFocused(null),
-    onClick: () => setSelected(selected === i ? null : i),
+    onClick: () => select(selected === i ? null : i),
   });
 
   return <section className="panel map-panel" aria-labelledby="map-title">

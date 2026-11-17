@@ -5,7 +5,9 @@ import { NO_VOTE, SECEDED, type Term } from '../engine/types';
 import { ideologyLabel } from '../engine/util';
 import type { Timeline } from '../engine/simulate';
 import { Icon } from './Icon';
+import { geoBody, savePicture, tileBody, type Caption, type LegendItem, type MapShape, type MapShapes, type Picture } from './imageExport';
 import { PartyLink, PresidentLink } from './People';
+import { SaveImageButton } from './SaveImageButton';
 import { approximateCount, decidedByCongress, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
 
@@ -16,21 +18,6 @@ function readMapStyle(): MapStyle {
   try { return localStorage.getItem(MAP_STYLE_KEY) === 'tiles' ? 'tiles' : 'map'; } catch { return 'map'; }
 }
 
-interface MapShape {
-  d: string;
-  label?: [number, number];
-  labelOutside?: boolean;
-  callout?: { box: [number, number, number, number]; line: [number, number, number, number] };
-}
-interface MapShapes {
-  width: number;
-  height: number;
-  background: string;
-  insets: [number, number, number, number][];
-  states: Record<string, MapShape>;
-  /** Virginia including West Virginia, drawn until West Virginia splits off. */
-  wholeVirginia: MapShape;
-}
 
 /**
  * The shapes file is about 200 KB, so it loads as its own file the first time
@@ -137,8 +124,21 @@ function stateResult(term: Term, index: number): string {
   return winner === NO_VOTE || winner === undefined ? 'No vote' : partyName(winner);
 }
 
-export function ElectionMap({ term, selected, select }: {
+/** The winner strip shared by every saved picture of an election. */
+export function pictureWinner(term: Term): Picture['winner'] {
+  const live = electoralTotals(term.grid).live;
+  const electoral = live > 0 ? `${Math.round(term.winnerElectoralShare * live)} of ${live} electoral votes` : `${percent(term.winnerElectoralShare)} of the Electoral College`;
+  const how = term.index === 0 ? 'Founding election' : decidedByCongress(term) ? 'Decided by Congress' : null;
+  return {
+    name: term.winnerName, party: term.winnerParty,
+    detail: [how, electoral, `${percent(term.winnerPopularShare)} of the popular vote`].filter(Boolean).join(' · '),
+  };
+}
+
+export function ElectionMap({ term, selected, select, caption }: {
   term: Term;
+  /** Seed, rules and link printed on a saved picture. */
+  caption: Caption;
   /** The state whose history panel is open, if any. */
   selected: number | null;
   select: (state: number | null) => void;
@@ -183,6 +183,16 @@ export function ElectionMap({ term, selected, select }: {
           <button type="button" aria-pressed={style === 'tiles'} onClick={() => chooseStyle('tiles')}>Tiles</button>
         </div>
         <span className="panel-count">{totals.votingStates} voting {totals.votingStates === 1 ? 'state' : 'states'}</span>
+        <SaveImageButton what="the map" save={async () => {
+          const shapes = style === 'map' ? shapesCache ?? await shapesRequest() : null;
+          await savePicture({
+            kicker: style === 'map' ? 'Electoral map' : 'Electoral map · tiles',
+            year: term.election, titleBefore: 'The ', titleAfter: ' election',
+            winnerLabel: 'Winner', winner: pictureWinner(term),
+            body: shapes ? geoBody(term, shapes) : tileBody(term),
+            legend: legend as LegendItem[], caption,
+          }, `election-${term.election}-seed-${caption.seed}-${style}.png`);
+        }} />
       </div>
     </div>
     <div className="map-stage" data-style={style}>

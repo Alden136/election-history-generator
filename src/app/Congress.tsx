@@ -4,7 +4,10 @@ import type { Term } from '../engine/types';
 import { ideologyLabel } from '../engine/util';
 import { chambers, type Chamber } from './chambers';
 import { bench, COLOR_LIMIT, ideologyColor } from './court';
+import { pictureWinner } from './Election';
+import { chamberBody, savePicture, type Caption } from './imageExport';
 import { Dot } from './Party';
+import { SaveImageButton } from './SaveImageButton';
 import { inkOn, PARTY_COLORS, percent, signed } from './presentation';
 
 interface Seat { x: number; y: number; party: number }
@@ -60,7 +63,10 @@ function seatLayout(seats: readonly number[], order: readonly number[]): { seats
   };
 }
 
-function ChamberPanel({ title, chamber, order }: { title: string; chamber: Chamber; order: readonly number[] }) {
+function ChamberPanel({ title, chamber, order, save }: {
+  title: string; chamber: Chamber; order: readonly number[];
+  save: (picture: { seats: ReturnType<typeof seatLayout>; needed: number; parties: number[] }) => Promise<void>;
+}) {
   const { seats, size } = seatLayout(chamber.seats, order);
   const needed = Math.floor(chamber.size / 2) + 1;
   const parties = order.filter((party) => chamber.seats[party]! > 0);
@@ -70,7 +76,10 @@ function ChamberPanel({ title, chamber, order }: { title: string; chamber: Chamb
   return <section className="panel chamber" aria-labelledby={`chamber-${title}`}>
     <div className="panel-header">
       <h3 id={`chamber-${title}`}>{title}</h3>
-      <span className="panel-count chamber-count"><span>{chamber.size} seats</span> <span>{needed} for a majority</span></span>
+      <div className="chamber-tools">
+        <span className="panel-count chamber-count"><span>{chamber.size} seats</span> <span>{needed} for a majority</span></span>
+        <SaveImageButton what={`the ${title} chart`} save={() => save({ seats: seatLayout(chamber.seats, order), needed, parties })} />
+      </div>
     </div>
     <div className="chamber-body">
       <svg className="hemicycle" viewBox={`${-scale - half} ${-scale - half} ${2 * scale + 2 * half} ${scale + 2 * half}`}
@@ -143,7 +152,7 @@ function CourtPanel({ court, sitting }: { court: readonly (number | null)[] | un
   </section>;
 }
 
-export function Congress({ term, court }: { term: Term; court: readonly (number | null)[] | undefined }) {
+export function Congress({ term, court, caption }: { term: Term; court: readonly (number | null)[] | undefined; caption: Caption }) {
   const { house, senate } = chambers(term);
   // Seat parties from left-wing to right-wing, as in a real chamber.
   const order = term.shownIdeology.map((ideology, party) => ({ ideology, party }))
@@ -151,14 +160,25 @@ export function Congress({ term, court }: { term: Term; court: readonly (number 
   // The simulation elects Congress only with each presidential election, so it sits four years.
   const sitting = term.index === 0 ? '1789–1793' : `${term.election + 1}–${term.election + 5}`;
 
+  const saveChamber = (name: 'House' | 'Senate', chamber: Chamber,
+    { seats, needed, parties }: { seats: ReturnType<typeof seatLayout>; needed: number; parties: number[] }) =>
+    savePicture({
+      kicker: `${name === 'House' ? 'House of Representatives' : 'Senate'} · ${term.index === 0 ? 'founding Congress' : `elected ${term.election}`} · sits ${sitting} · ${needed} of ${chamber.size} for a majority`,
+      year: term.election, titleBefore: 'The ', titleAfter: ` ${name}`,
+      winnerLabel: 'President elected', winner: pictureWinner(term),
+      body: chamberBody({ ...seats, total: chamber.size, needed, majority: chamber.majority,
+        parties: parties.map((party) => ({ party, seats: chamber.seats[party]! })) }),
+      legend: [], caption,
+    }, `${name.toLowerCase()}-${term.election}-seed-${caption.seed}.png`);
+
   return <section className="congress" aria-labelledby="congress-title">
     <div className="section-heading">
       <h2 id="congress-title">Congress and the Court</h2>
       <span className="eyebrow">{term.index === 0 ? `Founding Congress · sits ${sitting}` : `Elected ${term.election} · sits ${sitting}`}</span>
     </div>
     <div className="chambers">
-      <ChamberPanel title="House of Representatives" chamber={house} order={order} />
-      <ChamberPanel title="Senate" chamber={senate} order={order} />
+      <ChamberPanel title="House of Representatives" chamber={house} order={order} save={(layout) => saveChamber('House', house, layout)} />
+      <ChamberPanel title="Senate" chamber={senate} order={order} save={(layout) => saveChamber('Senate', senate, layout)} />
       <CourtPanel court={court} sitting={sitting} />
     </div>
   </section>;

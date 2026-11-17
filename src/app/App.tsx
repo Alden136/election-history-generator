@@ -71,6 +71,8 @@ export function App() {
     return { list, parties: partyProfiles(timeline.terms, list, PARTIES.length) };
   }, [timeline]);
   const shareUrl = timelineUrl(window.location.href, location).href;
+  const caption = { seed, url: shareUrl,
+    rules: `${PRESET_LABELS[timeline.preset]} rules${adjusted ? ` · ${adjusted} ${adjusted === 1 ? 'dial' : 'dials'} adjusted` : ''}` };
 
   useEffect(() => {
     const update = () => {
@@ -269,14 +271,14 @@ export function App() {
         <Playback year={year} playing={playing} setPlaying={setPlaying} chooseYear={chooseYear} advance={advance} />
         <div className="election-layout">
           <ElectionRail terms={timeline.terms} year={year} chooseYear={chooseYear} openHistory={() => openHistoryTab('elections')} />
-          <ElectionMap key={`${timelineKey}/${year}`} term={term} selected={selectedState} select={setSelectedState} />
+          <ElectionMap key={`${timelineKey}/${year}`} term={term} caption={caption} selected={selectedState} select={setSelectedState} />
           {selectedState !== null && <StatePanel terms={timeline.terms} state={selectedState} year={year}
             chooseYear={chooseYear} close={() => setSelectedState(null)} />}
           <ElectionResults term={term} winnerIdeology={timeline.terms[term.index + 1]?.potusIdeology ?? timeline.finalPresident.ideology}
             winnerBegan={timeline.terms[term.index + 1]?.termBegan ?? timeline.finalPresident.termBegan} />
         </div>
         <Overview timeline={timeline} openElection={openElection} />
-        <Congress term={term} court={timeline.terms[term.index + 1]?.court} />
+        <Congress term={term} court={timeline.terms[term.index + 1]?.court} caption={caption} />
         <TermDetails timeline={timeline} term={term} />
       </>}
       {view === 'history' && <>

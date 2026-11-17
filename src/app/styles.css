@@ -752,3 +752,14 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
   .party-page header, .party-charts, .party-lists { padding-inline: 13px; }
   .party-stats dd { font-size: 22px; }
 }
+
+/* Save image buttons in the dark panel headers */
+.panel-header .save-image { flex: none; width: 30px; height: 30px; box-shadow: none; border-color: #55524c; color: #141414; }
+.panel-header .save-image:hover { background: var(--accent); }
+.panel-header .save-image[data-state='saving'] { opacity: .6; cursor: progress; }
+.panel-header .save-image[data-state='failed'] { background: var(--accent); }
+.chamber-tools { display: flex; align-items: center; gap: 10px; }
+@media (max-width: 560px) {
+  .chamber .panel-header { flex-wrap: wrap; row-gap: 4px; padding-block: 8px; }
+  .chamber-tools { margin-left: auto; }
+}

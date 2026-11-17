@@ -498,6 +498,10 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 .playback-track input { width: 100%; margin: 0; accent-color: #141414; }
 .playback-track > div { display: flex; justify-content: space-between; gap: 5px; color: var(--muted); font: 600 10px var(--mono); }
 .playback-track output { color: var(--text); }
+.playback-keys { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; margin: 2px 0 0; color: var(--muted); font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.playback-keys kbd { padding: 0 5px; border: 1px solid var(--line); background: #ece9e3; color: var(--text); font: inherit; }
+.playback-keys kbd:last-of-type { margin-left: 10px; }
+@media (hover: none), (max-width: 700px) { .playback-keys { display: none; } }
 .playback-speed, .batch-controls label { display: flex; align-items: center; gap: 7px; color: var(--muted); font: 700 11px var(--sans); text-transform: uppercase; letter-spacing: .05em; }
 .playback-speed select, .batch-controls select { min-height: 34px; padding: 3px 6px; border: 2px solid var(--line); background: #ece9e3; color: var(--text); font: 600 12px var(--mono); }
 

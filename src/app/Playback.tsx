@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ELECTIONS } from '../engine/data';
 import { Icon } from './Icon';
+import { readKey, shortcutFor } from './shortcuts';
 
 const first = ELECTIONS[0]!;
 const last = ELECTIONS.at(-1)!;
@@ -29,9 +30,23 @@ export function Playback({ year, playing, setPlaying, chooseYear, advance }: {
     setPlaying(true);
   }
 
+  // Left and right arrows step through elections; space plays or pauses.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const shortcut = shortcutFor(readKey(event));
+      if (!shortcut) return;
+      event.preventDefault();
+      if (shortcut === 'toggle') togglePlayback();
+      else if (shortcut === 'previous' && year > first) chooseYear(year - 4);
+      else if (shortcut === 'next' && year < last) chooseYear(year + 4);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   return <section className="panel playback" aria-label="Timeline playback">
     <div className="playback-buttons">
-      <button className="button secondary" type="button" onClick={togglePlayback}>
+      <button className="button secondary" type="button" aria-keyshortcuts="Space" title="Space plays or pauses" onClick={togglePlayback}>
         <Icon name={playing ? 'pause' : 'play'} />{playing ? 'Pause' : 'Play timeline'}
       </button>
       <button className="icon-button" type="button" aria-label="Restart at 1792" title="Restart at 1792"
@@ -42,6 +57,7 @@ export function Playback({ year, playing, setPlaying, chooseYear, advance }: {
       <input id="playback-year" type="range" min={first} max={last} step={4} value={year}
         onChange={(event) => chooseYear(Number(event.target.value))} />
       <div><span>{first}</span><output htmlFor="playback-year">{year} · {ELECTIONS.indexOf(year) + 1}/{ELECTIONS.length}</output><span>{last}</span></div>
+      <p className="playback-keys"><kbd>←</kbd><kbd>→</kbd> step through elections <kbd>Space</kbd> play or pause</p>
     </div>
     <label className="playback-speed">Speed
       <select value={delay} onChange={(event) => setDelay(Number(event.target.value))}>

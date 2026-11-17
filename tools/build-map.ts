@@ -155,6 +155,8 @@ const LABEL_NUDGE: Record<string, [number, number]> = {
   FL: [9, 6], MI: [6, 10], LA: [-6, -2], ID: [0, 12], KY: [4, 1], NY: [6, 4], CA: [-6, 0],
   TN: [2, 0], ON: [0, 22], QC: [0, 30], NL: [10, 26], NS: [-4, 2], OK: [8, 0], TX: [4, 0],
   VA: [6, 2], NC: [6, 0], WV: [-1, 2], MN: [-2, 6], CL: [4, 6], ME: [-2, 4], SN: [-4, 0],
+  // Cuba is thin and curved; this is the widest part of the island.
+  CU: [-38.7, -10.7],
 };
 
 /** States too small to label or hover easily get a box in the Atlantic. */

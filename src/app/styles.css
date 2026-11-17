@@ -601,3 +601,23 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 .chamber-count { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0 10px; text-align: right; white-space: normal; }
 .chamber-count span { white-space: nowrap; }
 .congress .section-heading { flex-wrap: wrap; }
+/* Supreme Court bench: a full-width row under the two chambers, one square per seat. */
+.court { grid-column: 1 / -1; }
+.court-body { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 16px; padding: 16px 16px 14px; align-items: start; }
+.court-note { margin: 0; padding: 16px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.bench { display: grid; grid-template-columns: repeat(15, minmax(0, 1fr)); gap: 5px; margin: 0; padding: 0; list-style: none; }
+.bench li { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; aspect-ratio: 1 / 1.2; border: 2px solid #141414; }
+.bench li[data-empty] { border-style: dashed; border-color: var(--hair); color: var(--muted); }
+.bench strong { font: 700 13px var(--mono); }
+.bench small { font: 700 8px var(--mono); letter-spacing: .03em; text-transform: uppercase; }
+.bench-scale { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.bench-scale i { height: 8px; border: 1px solid #141414; background: linear-gradient(90deg, #2f6fd6, #ece8df, #d64541); }
+.court-figures li { grid-template-columns: minmax(0, 1fr) auto auto; }
+.court-figures small { min-width: 0; }
+.court-figures small:empty { display: none; }
+@media (min-width: 701px) and (max-width: 1210px) { .bench { gap: 3px; } .bench strong { font-size: 10.5px; } }
+@media (max-width: 700px) {
+  .court-body { grid-template-columns: 1fr; }
+  .bench { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .bench li { aspect-ratio: 1 / .6; }
+}

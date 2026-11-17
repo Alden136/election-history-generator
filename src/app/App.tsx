@@ -203,7 +203,7 @@ export function App() {
             chooseYear={chooseYear} close={() => setSelectedState(null)} />}
           <ElectionResults term={term} winnerIdeology={timeline.terms[term.index + 1]?.potusIdeology ?? timeline.finalPresident.ideology} />
         </div>
-        <Congress term={term} />
+        <Congress term={term} court={timeline.terms[term.index + 1]?.court} />
         <Overview timeline={timeline} openElection={openElection} />
         <TermDetails timeline={timeline} term={term} />
       </>}

@@ -1,9 +1,11 @@
 import type { CSSProperties } from 'react';
 import { partyName } from '../engine/data';
 import type { Term } from '../engine/types';
+import { ideologyLabel } from '../engine/util';
 import { chambers, type Chamber } from './chambers';
+import { bench, COLOR_LIMIT, ideologyColor } from './court';
 import { Dot } from './Party';
-import { PARTY_COLORS, percent } from './presentation';
+import { inkOn, PARTY_COLORS, percent, signed } from './presentation';
 
 interface Seat { x: number; y: number; party: number }
 
@@ -91,7 +93,57 @@ function ChamberPanel({ title, chamber, order }: { title: string; chamber: Chamb
   </section>;
 }
 
-export function Congress({ term }: { term: Term }) {
+/**
+ * The Supreme Court as the winner of this election leaves it: one square per
+ * seat, justices from left-wing to right-wing, then the empty seats.
+ */
+function CourtPanel({ court, sitting }: { court: readonly (number | null)[] | undefined; sitting: string }) {
+  if (!court) {
+    return <section className="panel court" aria-labelledby="court-title">
+      <div className="panel-header"><h3 id="court-title">Supreme Court</h3></div>
+      <p className="court-note">The simulation ends after 2064, so the court this term leaves behind is not worked out.</p>
+    </section>;
+  }
+  const { justices, size, empty, average, median, left, right } = bench(court);
+  const lean = left === right ? 'Evenly split' : `Leans ${left > right ? 'left' : 'right'} ${Math.max(left, right)}–${Math.min(left, right)}`;
+
+  return <section className="panel court" aria-labelledby="court-title">
+    <div className="panel-header">
+      <h3 id="court-title">Supreme Court</h3>
+      <span className="panel-count chamber-count"><span>{justices.length} of {size} seats filled</span> <span>End of the {sitting} term</span></span>
+    </div>
+    <div className="court-body">
+      <div>
+        <ol className="bench" aria-label="Justices from left-wing to right-wing, then empty seats">
+          {justices.map(({ seat, ideology }) => {
+            const fill = ideologyColor(ideology);
+            const label = `Seat ${seat}: ${ideologyLabel(ideology)}, ${signed(ideology)}`;
+            return <li key={seat} title={label} aria-label={label} style={{ background: fill, color: inkOn(fill) }}>
+              <strong aria-hidden="true">{signed(ideology)}</strong>
+            </li>;
+          })}
+          {Array.from({ length: empty }, (_, i) => <li key={`empty-${i}`} data-empty title="Empty seat" aria-label="Empty seat">
+            <small aria-hidden="true">Empty</small></li>)}
+        </ol>
+        <div className="bench-scale" aria-hidden="true">
+          <span>Left-wing −{COLOR_LIMIT}</span><i /><span>+{COLOR_LIMIT} Right-wing</span>
+        </div>
+      </div>
+      <div className="court-side">
+        <p className="chamber-control" data-control={left === right ? 'none' : 'party'}
+          style={{ '--control': left === right ? undefined : ideologyColor(left > right ? -3 : 3) } as CSSProperties}>{lean}</p>
+        <ul className="chamber-parties court-figures">
+          <li><span>Average</span><strong>{signed(average)}</strong><small>{ideologyLabel(average)}</small></li>
+          <li><span>Middle justice</span><strong>{signed(median)}</strong><small>{ideologyLabel(median)}</small></li>
+          <li><span>Left of centre</span><strong>{left}</strong><small /></li>
+          <li><span>Right of centre</span><strong>{right}</strong><small /></li>
+        </ul>
+      </div>
+    </div>
+  </section>;
+}
+
+export function Congress({ term, court }: { term: Term; court: readonly (number | null)[] | undefined }) {
   const { house, senate } = chambers(term);
   // Seat parties from left-wing to right-wing, as in a real chamber.
   const order = term.shownIdeology.map((ideology, party) => ({ ideology, party }))
@@ -101,12 +153,13 @@ export function Congress({ term }: { term: Term }) {
 
   return <section className="congress" aria-labelledby="congress-title">
     <div className="section-heading">
-      <h2 id="congress-title">Congress</h2>
+      <h2 id="congress-title">Congress and the Court</h2>
       <span className="eyebrow">{term.index === 0 ? `Founding Congress · sits ${sitting}` : `Elected ${term.election} · sits ${sitting}`}</span>
     </div>
     <div className="chambers">
       <ChamberPanel title="House of Representatives" chamber={house} order={order} />
       <ChamberPanel title="Senate" chamber={senate} order={order} />
+      <CourtPanel court={court} sitting={sitting} />
     </div>
   </section>;
 }

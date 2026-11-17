@@ -3,7 +3,8 @@ import { PARTIES, partyName } from '../engine/data';
 import type { FinalPresident } from '../engine/summary';
 import type { Term } from '../engine/types';
 import { ideologyLabel } from '../engine/util';
-import { Dot, Party } from './Party';
+import { Dot } from './Party';
+import { PartyLink, PresidentLink } from './People';
 import { Icon } from './Icon';
 import { decidedByCongress, percent, signed } from './presentation';
 
@@ -134,13 +135,13 @@ export function History({ terms, final, year, chooseYear }: HistoryProps & { fin
               <th scope="row"><button className="text-button year-link" onClick={() => chooseYear(term.election)}>
                 {term.election}<Icon name="arrow" size={14} />
               </button></th>
-              <td>{term.winnerName}</td><td><Party party={term.winnerParty} /></td>
+              <td><PresidentLink name={term.winnerName} began={won.began} /></td><td><PartyLink party={term.winnerParty} /></td>
               <td className="numeric">{percent(term.winnerPopularShare)}</td>
               <td className="numeric">{percent(term.winnerElectoralShare)}{decidedByCongress(term) && (
                 <small className="table-note">Contingent</small>
               )}</td>
               <td>{term.index === 0 ? '—' : term.result === 'WIN' ? 'Kept' : <span className="table-lost">Lost</span>}</td>
-              <td><Party party={term.congressLeader} /></td>
+              <td><PartyLink party={term.congressLeader} /></td>
               <td className="numeric">{percent(term.congress[term.congressLeader]!)}</td>
               <td className="group-start">{won.began}–{won.began + 4}</td>
               <td className="numeric">{ideology(won.ideology)}</td>

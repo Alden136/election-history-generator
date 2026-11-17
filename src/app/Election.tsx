@@ -5,7 +5,7 @@ import { NO_VOTE, SECEDED, type Term } from '../engine/types';
 import { ideologyLabel } from '../engine/util';
 import type { Timeline } from '../engine/simulate';
 import { Icon } from './Icon';
-import { Party } from './Party';
+import { PartyLink, PresidentLink } from './People';
 import { approximateCount, decidedByCongress, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
 
@@ -209,17 +209,22 @@ export function ElectionMap({ term, selected, select }: {
   </section>;
 }
 
-export function ElectionResults({ term, winnerIdeology }: { term: Term; winnerIdeology: number }) {
+export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
+  term: Term;
+  winnerIdeology: number;
+  /** The year the winner's term begins, which identifies their presidency. */
+  winnerBegan: number;
+}) {
   const results = partyResults(term);
   // Electoral votes still cast (seceded states excluded). The sheet records none for 1792.
   const live = electoralTotals(term.grid).live;
   return <section className="panel results" aria-labelledby="results-title">
     <div className="panel-header"><h2 id="results-title">Election results</h2></div>
     <div className="winner" style={{ '--winner': PARTY_COLORS[term.winnerParty] } as CSSProperties}>
-      <div className="winner-meta"><Party party={term.winnerParty} />
+      <div className="winner-meta"><PartyLink party={term.winnerParty} />
         <span>{term.index === 0 ? 'Founding election' : decidedByCongress(term) ? 'Decided by Congress' : 'Electoral majority'}</span>
       </div>
-      <h3>{term.winnerName}</h3>
+      <h3><PresidentLink name={term.winnerName} began={winnerBegan} /></h3>
       <p className="winner-ideology">{ideologyLabel(winnerIdeology)} <span>{signed(winnerIdeology)}</span></p>
       <dl className="winner-stats">
         <div><dt>Electoral votes</dt><dd>{live > 0
@@ -236,7 +241,7 @@ export function ElectionResults({ term, winnerIdeology }: { term: Term; winnerId
           <th scope="col"><abbr title="Popular vote">PV</abbr></th><th scope="col">Ideology</th></tr></thead>
         <tbody>{results.map((party) => (
           <tr key={party.index}>
-            <th scope="row"><Party party={party.index} /></th>
+            <th scope="row"><PartyLink party={party.index} /></th>
             <td>{percent(party.electoral)}</td>
             <td>{party.popular === null ? <span aria-label="Popular vote not recorded">—</span> : percent(party.popular)}</td>
             <td>{party.support > 0 || party.won ? <>{signed(party.ideology)}<span>{ideologyLabel(party.ideology)}</span></> : '—'}</td>
@@ -246,7 +251,7 @@ export function ElectionResults({ term, winnerIdeology }: { term: Term; winnerId
     </div>
     <div className="results-congress">
       <span className="eyebrow">Congress leader</span>
-      <div><Party party={term.congressLeader} /><strong>{percent(term.congress[term.congressLeader]!)}</strong></div>
+      <div><PartyLink party={term.congressLeader} /><strong>{percent(term.congress[term.congressLeader]!)}</strong></div>
     </div>
   </section>;
 }
@@ -272,7 +277,8 @@ export function TermDetails({ timeline, term }: { timeline: Timeline; term: Term
     <div className="panel-header"><h2 id="term-title">Their term in office</h2>
       <span className="panel-count">{began}–{began + 4}</span></div>
     <div className="term-grid">
-      <div><span className="eyebrow">President</span><strong>{term.winnerName}</strong><Party party={term.winnerParty} /></div>
+      <div><span className="eyebrow">President</span><strong><PresidentLink name={term.winnerName} began={began} /></strong>
+        <PartyLink party={term.winnerParty} /></div>
       <div><span className="eyebrow">Term event</span><strong>{descriptor || 'No major event'}</strong>
         <small>{ideologyLabel(ideology)} · {signed(ideology)}</small></div>
       <div><span className="eyebrow">Election-day approval</span>

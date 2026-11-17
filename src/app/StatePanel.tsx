@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { partyName, STATES } from '../engine/data';
 import { NO_VOTE, SECEDED, type Term } from '../engine/types';
 import { Icon } from './Icon';
-import { Dot, Party } from './Party';
+import { Dot } from './Party';
+import { PartyLink } from './People';
 import { NO_VOTE_COLOR, PARTY_COLORS, SECEDED_COLOR, signed } from './presentation';
 import { stateHistory, stateStory, yearRange, type StateResult } from './stateHistory';
 
@@ -55,7 +56,7 @@ export function StatePanel({ terms, state, year, chooseYear, close }: {
     </div>
     <dl className="state-stats">
       <div><dt className="eyebrow">In {year}</dt>
-        <dd>{now.winner >= 0 ? <Party party={now.winner} /> : outcome(now)}</dd><small>{nowDetail}</small></div>
+        <dd>{now.winner >= 0 ? <PartyLink party={now.winner} /> : outcome(now)}</dd><small>{nowDetail}</small></div>
       <div><dt className="eyebrow">First voted</dt>
         <dd>{history.firstVote ?? 'Never'}</dd><small>Voted in {history.voted} of {elections(results.length)}</small></div>
       <div><dt className="eyebrow">Backed the winner so far</dt>
@@ -64,10 +65,10 @@ export function StatePanel({ terms, state, year, chooseYear, close }: {
           : now.winner >= 0 ? `Backed the loser in ${year}`
           : soFar.length ? `Did not vote in ${year}` : 'No votes cast yet'}</small></div>
       <div><dt className="eyebrow">Most often voted</dt>
-        <dd>{favorite ? <Party party={favorite.party} /> : '—'}</dd>
+        <dd>{favorite ? <PartyLink party={favorite.party} /> : '—'}</dd>
         <small>{favorite ? elections(favorite.wins) : 'No votes cast'}</small></div>
       <div><dt className="eyebrow">Longest streak</dt>
-        <dd>{longestStreak ? <Party party={longestStreak.party} /> : '—'}</dd>
+        <dd>{longestStreak ? <PartyLink party={longestStreak.party} /> : '—'}</dd>
         <small>{longestStreak ? `${yearRange(longestStreak.from, longestStreak.to)} · ${elections(longestStreak.elections)}` : 'No votes cast'}</small></div>
       <div><dt className="eyebrow">Most electoral votes</dt>
         <dd>{peak ? peak.votes : '—'}</dd><small>{peak ? `First reached in ${peak.election}` : 'Never had any'}</small></div>

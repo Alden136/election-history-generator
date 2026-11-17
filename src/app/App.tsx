@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { ELECTIONS } from '../engine/data';
+import { ELECTIONS, PARTIES } from '../engine/data';
 import { simulate } from '../engine/simulate';
 import { Charts } from './Charts';
 import { Congress } from './Congress';
@@ -11,7 +11,9 @@ import { Finder } from './Finder';
 import { ElectionRail, History } from './History';
 import { Icon } from './Icon';
 import { Overview } from './Overview';
+import { Parties, Presidents, ProfileLinksContext } from './People';
 import { Playback } from './Playback';
+import { partyProfiles, presidencies, presidencyAt } from './profiles';
 import { StatePanel } from './StatePanel';
 import { SavedTimelines } from './SavedTimelines';
 import { addSaved, loadSaved, locationOf, removeSaved, SAVED_KEY, writeSaved, type SavedTimeline } from './saved';
@@ -28,6 +30,12 @@ const views = [
   { id: 'finder', label: 'Finder', short: 'Finder', icon: 'search' },
 ] as const;
 type View = typeof views[number]['id'];
+const historyTabs = [
+  { id: 'elections', label: 'Elections' },
+  { id: 'presidents', label: 'Presidents' },
+  { id: 'parties', label: 'Parties' },
+] as const;
+type HistoryTab = typeof historyTabs[number]['id'];
 
 export function App() {
   const [location, setLocation] = useState(() => readLocation(window.location.search));
@@ -42,6 +50,10 @@ export function App() {
   const [saved, setSaved] = useState(() => loadSaved());
   const [draft, setDraft] = useState(String(seed));
   const [view, setView] = useState<View>('election');
+  const [historyTab, setHistoryTab] = useState<HistoryTab>('elections');
+  // The party page and president row to show; links from elsewhere in the app set these.
+  const [focusParty, setFocusParty] = useState<number | null>(null);
+  const [focusPresident, setFocusPresident] = useState<number | null>(null);
   // The state whose history panel is open. It stays open while the year or seed changes.
   const [selectedState, setSelectedState] = useState<number | null>(null);
   const [error, setError] = useState('');
@@ -54,6 +66,10 @@ export function App() {
   const adjusted = modifiedDials(dials).length;
   const timelineKey = `${seed}/${corrections.join(',')}/${encodeDials(dials)}`;
   const term = timeline.terms[ELECTIONS.indexOf(year)]!;
+  const people = useMemo(() => {
+    const list = presidencies(timeline.terms, timeline.finalPresident);
+    return { list, parties: partyProfiles(timeline.terms, list, PARTIES.length) };
+  }, [timeline]);
   const shareUrl = timelineUrl(window.location.href, location).href;
 
   useEffect(() => {
@@ -109,6 +125,19 @@ export function App() {
     setPlaying(false);
     if (main.current && main.current.getBoundingClientRect().top < 0) window.scrollTo(0, 0);
   }
+
+  function openHistoryTab(tab: HistoryTab) {
+    setHistoryTab(tab);
+    openView('history');
+  }
+
+  const profileLinks = {
+    openParty: (party: number) => { setFocusParty(party); openHistoryTab('parties'); },
+    openPresident: (began: number) => {
+      setFocusPresident(presidencyAt(people.list, began)?.number ?? null);
+      openHistoryTab('presidents');
+    },
+  };
 
   function chooseYear(nextYear: number) {
     setPlaying(false);
@@ -186,6 +215,7 @@ export function App() {
         <span className="topbar-range">1792 <i /> 2064</span>
       </div>
     </header>
+    <ProfileLinksContext.Provider value={profileLinks}>
     <main className="shell main" id="main" ref={main}>
       <div className="masthead">
         <div>
@@ -238,17 +268,27 @@ export function App() {
         </div>
         <Playback year={year} playing={playing} setPlaying={setPlaying} chooseYear={chooseYear} advance={advance} />
         <div className="election-layout">
-          <ElectionRail terms={timeline.terms} year={year} chooseYear={chooseYear} openHistory={() => openView('history')} />
+          <ElectionRail terms={timeline.terms} year={year} chooseYear={chooseYear} openHistory={() => openHistoryTab('elections')} />
           <ElectionMap key={`${timelineKey}/${year}`} term={term} selected={selectedState} select={setSelectedState} />
           {selectedState !== null && <StatePanel terms={timeline.terms} state={selectedState} year={year}
             chooseYear={chooseYear} close={() => setSelectedState(null)} />}
-          <ElectionResults term={term} winnerIdeology={timeline.terms[term.index + 1]?.potusIdeology ?? timeline.finalPresident.ideology} />
+          <ElectionResults term={term} winnerIdeology={timeline.terms[term.index + 1]?.potusIdeology ?? timeline.finalPresident.ideology}
+            winnerBegan={timeline.terms[term.index + 1]?.termBegan ?? timeline.finalPresident.termBegan} />
         </div>
         <Overview timeline={timeline} openElection={openElection} />
         <Congress term={term} court={timeline.terms[term.index + 1]?.court} />
         <TermDetails timeline={timeline} term={term} />
       </>}
-      {view === 'history' && <History terms={timeline.terms} final={timeline.finalPresident} year={year} chooseYear={openElection} />}
+      {view === 'history' && <>
+        <div className="segmented history-tabs" role="group" aria-label="Political history">
+          {historyTabs.map((tab) => <button key={tab.id} type="button" aria-pressed={historyTab === tab.id}
+            onClick={() => { setHistoryTab(tab.id); setFocusPresident(null); }}>{tab.label}</button>)}
+        </div>
+        {historyTab === 'elections' && <History terms={timeline.terms} final={timeline.finalPresident} year={year} chooseYear={openElection} />}
+        {historyTab === 'presidents' && <Presidents list={people.list} focus={focusPresident} openElection={openElection} />}
+        {historyTab === 'parties' && <Parties profiles={people.parties} list={people.list} focus={focusParty} setFocus={setFocusParty}
+          openPresident={(n) => { setFocusPresident(n); setHistoryTab('presidents'); window.scrollTo(0, 0); }} openElection={openElection} />}
+      </>}
       {view === 'charts' && <Charts terms={timeline.terms} year={year} chooseYear={chooseYear} />}
       <div hidden={view !== 'statistics'}>
         <Statistics key={timelineKey} seed={seed} settings={settings} preset={timeline.preset} />
@@ -258,6 +298,7 @@ export function App() {
         <Finder settings={settings} preset={timeline.preset} year={year} openTimeline={openFound} />
       </div>
     </main>
+    </ProfileLinksContext.Provider>
     {rulesOpen && <RuleSettings corrections={corrections} apply={(selected) => navigate({ corrections: selected })}
       dismiss={() => { setRulesOpen(false); rulesButton.current?.focus(); }} />}
     {dialsOpen && <DialSettings dials={dials} apply={(next) => navigate({ dials: next })}

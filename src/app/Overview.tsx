@@ -1,6 +1,6 @@
-import { ELECTIONS, partyName } from '../engine/data';
+import { ELECTIONS } from '../engine/data';
 import type { Timeline } from '../engine/simulate';
-import { Dot } from './Party';
+import { PartyLink, PresidentLink } from './People';
 import { Icon } from './Icon';
 
 export function Overview({ timeline, openElection }: { timeline: Timeline; openElection: (year: number) => void }) {
@@ -47,11 +47,10 @@ export function Overview({ timeline, openElection }: { timeline: Timeline; openE
             return (
               <div className="notable" key={label}>
                 <span className="eyebrow">{label}</span>
-                <h4>{year === undefined ? president.name : (
-                  <button className="text-button" onClick={() => openElection(year)}>{president.name}<Icon name="arrow" size={14} /></button>
-                )}</h4>
-                <p><Dot party={president.party} />{partyName(president.party)}</p>
-                <p className="notable-term">{president.terms?.map(({ start, end }) => `${start}–${end}`).join(', ') ??
+                <h4><PresidentLink name={president.name} began={start}>{president.name}<Icon name="arrow" size={14} /></PresidentLink></h4>
+                <p><PartyLink party={president.party} /></p>
+                <p className="notable-term">{year !== undefined && <button type="button" className="text-button notable-election"
+                  title={`Open the ${year} election`} onClick={() => openElection(year)}>{year} election</button>}{year !== undefined && <> <span>·</span> </>}{president.terms?.map(({ start, end }) => `${start}–${end}`).join(', ') ??
                   (president.termEnd === null ? `Inaugurated ${president.termStart}` :
                     president.termStart === president.termEnd ? president.termStart : `${president.termStart}–${president.termEnd}`)}
                   {president.info && <> <span>·</span> {president.info}</>}</p>

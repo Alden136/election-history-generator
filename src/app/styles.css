@@ -686,3 +686,69 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
   .finder-conditions { grid-template-columns: 1fr 1fr; }
   .finder-conditions > label:nth-child(3) { grid-column: 1 / -1; }
 }
+
+/* Names that open a party page or a president's entry */
+.profile-link { color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; }
+.profile-link:hover { color: inherit; text-decoration: underline 2px var(--accent); text-underline-offset: 3px; }
+.profile-link .party { color: inherit; }
+.winner .profile-link:hover, .results-congress .profile-link:hover { text-decoration-color: currentColor; }
+.notable h4 .profile-link { align-items: center; }
+.notable-election { display: inline; font: inherit; color: var(--text); text-decoration: underline 1px; text-underline-offset: 2px; }
+
+/* Political history: Elections, Presidents, Parties */
+.history-tabs { display: inline-flex; margin-bottom: 14px; }
+.presidents-table .president-number { font: 700 12px var(--mono); white-space: nowrap; }
+.presidents-table .president-name { display: block; font: 800 13px var(--sans); white-space: nowrap; }
+.president-parties, .president-elections { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.president-parties > span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.year-chip { padding: 1px 5px; border: 1px solid var(--line); background: var(--raised); font: 600 11px var(--mono); }
+.year-chip:hover { background: #141414; color: #f4f2ee; text-decoration: none; }
+.presidents-table tr[data-selected='true'] > * { background: var(--accent-wash); }
+.presidents-table .table-sub { display: block; margin: 2px 0 0; }
+.presidents-table tbody tr { scroll-margin-block: 80px; }
+
+.parties-body { display: grid; grid-template-columns: 230px minmax(0, 1fr); }
+.party-list { display: flex; flex-direction: column; border-right: 3px solid var(--line); background: var(--raised); }
+.party-list button { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 10px 14px; border: 0; border-bottom: 1px solid var(--hair); background: none; color: var(--text); text-align: left; font: 700 13px var(--sans); }
+.party-list button span:not(.dot) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.party-list button small { color: var(--muted); font: 500 10px var(--mono); }
+.party-list button:hover { background: var(--panel); }
+.party-list button[aria-current='true'] { background: #141414; color: #f4f2ee; box-shadow: inset 6px 0 0 var(--accent); }
+.party-list button[aria-current='true'] small { color: #a9a59d; }
+.party-page { min-width: 0; scroll-margin-top: 12px; }
+.party-page header { padding: 18px 20px 16px; border-bottom: 3px solid var(--line); border-left: 12px solid var(--party); }
+.party-page h3 { font: 900 clamp(26px, 3.2vw, 40px)/.95 var(--display); font-stretch: 120%; letter-spacing: -.02em; text-transform: uppercase; }
+.party-page header p { margin-top: 8px; color: var(--muted); font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; }
+.party-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; background: var(--line); border-bottom: 3px solid var(--line); }
+.party-stats > div { display: flex; flex-direction: column; gap: 5px; padding: 13px 15px; background-color: var(--panel); background-image: var(--grain); }
+.party-stats dd { font: 900 26px/1 var(--display); font-stretch: 112%; }
+.party-stats small { color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
+.party-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 16px 20px 6px; }
+.series-chart { margin: 0; min-width: 0; }
+.series-chart figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 10px; margin-bottom: 6px; }
+.series-readout { color: var(--muted); font: 600 11px var(--mono); }
+.series-chart svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; }
+.series-grid line { stroke: var(--hair); stroke-width: 1; }
+.series-grid line[data-zero] { stroke: #8d8980; }
+.series-grid text, .series-axis { fill: var(--muted); font: 500 10px var(--mono); }
+.series-cursor line { stroke: #141414; stroke-width: 1; stroke-dasharray: 3 3; }
+.series-cursor circle { stroke: var(--panel); stroke-width: 2; }
+.party-lists { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; padding: 12px 20px 20px; }
+.party-lists h4 { margin-bottom: 8px; font: 900 16px var(--display); font-stretch: 115%; text-transform: uppercase; }
+.party-presidents { margin: 0; padding: 0; list-style: none; max-height: 320px; overflow-y: auto; }
+.party-presidents li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; padding: 6px 0; border-bottom: 1px solid var(--hair); }
+.party-presidents .text-button { font: 700 13px var(--sans); }
+.party-presidents .muted { font: 600 11px var(--mono); }
+.party-presidents small { color: var(--muted); font: 500 11px var(--mono); }
+.party-wins { display: flex; flex-wrap: wrap; gap: 5px; }
+@media (max-width: 1100px) { .party-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .party-charts, .party-lists { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+  .parties-body { grid-template-columns: 1fr; }
+  .party-list { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 3px solid var(--line); }
+  .party-list button { grid-template-columns: 10px auto; flex: none; border-bottom: 0; border-right: 1px solid var(--hair); }
+  .party-list button small { display: none; }
+}
+@media (max-width: 560px) {
+  .party-page header, .party-charts, .party-lists { padding-inline: 13px; }
+  .party-stats dd { font-size: 22px; }
+}

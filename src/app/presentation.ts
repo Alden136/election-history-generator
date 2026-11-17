@@ -113,12 +113,23 @@ const realTotalVotes = (year: number): number => {
 const realElectoralVotes = (year: number): number =>
   REAL_STATES.reduce((total, state) => total + (state.realElectoralVotes[year] ?? 0), 0);
 
-/** Estimated popular votes for the winner of an election. */
-export function estimatedWinnerVotes(term: Term, liveElectoralVotes: number): number {
+/** Estimated popular votes for a share of the vote in an election. */
+export function estimatedVotes(term: Term, share: number, liveElectoralVotes: number): number {
   const real = realElectoralVotes(term.election);
   // 1792 has no electoral vote counts in the simulation, so it is not scaled.
   const scale = liveElectoralVotes > 0 && real > 0 ? liveElectoralVotes / real : 1;
-  return term.winnerPopularShare * realTotalVotes(term.election) * scale;
+  return share * realTotalVotes(term.election) * scale;
+}
+
+/** Estimated popular votes for the winner of an election. */
+export const estimatedWinnerVotes = (term: Term, liveElectoralVotes: number): number =>
+  estimatedVotes(term, term.winnerPopularShare, liveElectoralVotes);
+
+/** "72.0M", "6.43M", "850K" or "8,600": short enough for a table column. */
+export function compactCount(votes: number): string {
+  if (votes >= 1e6) return `${(votes / 1e6).toFixed(votes >= 1e7 ? 1 : 2)}M`;
+  if (votes >= 1e4) return `${Math.round(votes / 1e3)}K`;
+  return (Math.round(votes / 10) * 10).toLocaleString('en-US');
 }
 
 /** "68.4 million", "1.2 million" or "28,600": rounded to what an estimate can claim. */

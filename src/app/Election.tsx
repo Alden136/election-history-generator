@@ -8,7 +8,8 @@ import { Icon } from './Icon';
 import { geoBody, savePicture, tileBody, type Caption, type LegendItem, type MapShape, type MapShapes, type Picture } from './imageExport';
 import { PartyLink, PresidentLink } from './People';
 import { SaveImageButton } from './SaveImageButton';
-import { approximateCount, decidedByCongress, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
+import { useVoteDisplay, type VoteDisplay } from './voteDisplay';
+import { approximateCount, compactCount, decidedByCongress, estimatedVotes, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
 
 type MapStyle = 'map' | 'tiles';
@@ -125,13 +126,14 @@ function stateResult(term: Term, index: number): string {
 }
 
 /** The winner strip shared by every saved picture of an election. */
-export function pictureWinner(term: Term): Picture['winner'] {
+export function pictureWinner(term: Term, display: VoteDisplay): Picture['winner'] {
   const live = electoralTotals(term.grid).live;
   const electoral = live > 0 ? `${Math.round(term.winnerElectoralShare * live)} of ${live} electoral votes` : `${percent(term.winnerElectoralShare)} of the Electoral College`;
   const how = term.index === 0 ? 'Founding election' : decidedByCongress(term) ? 'Decided by Congress' : null;
   return {
     name: term.winnerName, party: term.winnerParty,
-    detail: [how, electoral, `${percent(term.winnerPopularShare)} of the popular vote`].filter(Boolean).join(' · '),
+    detail: [how, electoral, display === 'percent' ? `${percent(term.winnerPopularShare)} of the popular vote`
+      : `about ${approximateCount(estimatedWinnerVotes(term, live))} popular votes`].filter(Boolean).join(' · '),
   };
 }
 
@@ -147,6 +149,7 @@ export function ElectionMap({ term, selected, select, caption }: {
   const [focused, setFocused] = useState<number | null>(null);
   const active = hovered ?? focused ?? selected;
   const [style, setStyle] = useState<MapStyle>(readMapStyle);
+  const voteDisplay = useVoteDisplay();
   const chooseStyle = (next: MapStyle) => {
     setStyle(next);
     try { localStorage.setItem(MAP_STYLE_KEY, next); } catch { /* storage unavailable: keep it for this visit */ }
@@ -188,7 +191,7 @@ export function ElectionMap({ term, selected, select, caption }: {
           await savePicture({
             kicker: style === 'map' ? 'Electoral map' : 'Electoral map · tiles',
             year: term.election, titleBefore: 'The ', titleAfter: ' election',
-            winnerLabel: 'Winner', winner: pictureWinner(term),
+            winnerLabel: 'Winner', winner: pictureWinner(term, voteDisplay),
             body: shapes ? geoBody(term, shapes) : tileBody(term),
             legend: legend as LegendItem[], caption,
           }, `election-${term.election}-seed-${caption.seed}-${style}.png`);
@@ -226,6 +229,7 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
   winnerBegan: number;
 }) {
   const results = partyResults(term);
+  const display = useVoteDisplay();
   // Electoral votes still cast (seceded states excluded). The sheet records none for 1792.
   const live = electoralTotals(term.grid).live;
   return <section className="panel results" aria-labelledby="results-title">
@@ -240,20 +244,27 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
         <div><dt>Electoral votes</dt><dd>{live > 0
           ? <>{Math.round(term.winnerElectoralShare * live)}<small className="winner-of"> of {live}</small></>
           : percent(term.winnerElectoralShare)}</dd></div>
-        <div><dt>Popular vote</dt><dd>{percent(term.winnerPopularShare)}</dd>
-          <small className="winner-votes" title="Estimated from real US turnout for this year, scaled to this timeline's electoral votes">
-            ≈ {approximateCount(estimatedWinnerVotes(term, live))} votes</small></div>
+        {display === 'percent'
+          ? <div><dt>Popular vote</dt><dd>{percent(term.winnerPopularShare)}</dd>
+            <small className="winner-votes" title="Estimated from real US turnout for this year, scaled to this timeline's electoral votes">
+              ≈ {approximateCount(estimatedWinnerVotes(term, live))} votes</small></div>
+          : <div><dt>Popular vote</dt><dd title="Estimated from real US turnout for this year, scaled to this timeline's electoral votes">{compactCount(estimatedWinnerVotes(term, live))}</dd>
+            <small className="winner-votes">{percent(term.winnerPopularShare)} of the vote · estimated</small></div>}
       </dl>
     </div>
     <div className="results-parties">
       <table className="results-table" aria-label="Party results">
         <thead><tr><th scope="col">Party</th><th scope="col"><abbr title="Electoral College">EC</abbr></th>
-          <th scope="col"><abbr title="Popular vote">PV</abbr></th><th scope="col">Ideology</th></tr></thead>
+          <th scope="col"><abbr title={display === 'percent' ? 'Popular vote' : 'Popular votes, estimated from real US turnout'}>PV</abbr></th><th scope="col">Ideology</th></tr></thead>
         <tbody>{results.map((party) => (
           <tr key={party.index}>
             <th scope="row"><PartyLink party={party.index} /></th>
             <td>{percent(party.electoral)}</td>
-            <td>{party.popular === null ? <span aria-label="Popular vote not recorded">—</span> : percent(party.popular)}</td>
+            {/* The hover text sits on the cell: this table styles any span as a faint sub-label. */}
+            <td title={party.popular === null || display === 'percent' ? undefined
+              : `${percent(party.popular)} · ≈ ${approximateCount(estimatedVotes(term, party.popular, live))} votes`}>
+              {party.popular === null ? <span aria-label="Popular vote not recorded">—</span>
+                : display === 'percent' ? percent(party.popular) : compactCount(estimatedVotes(term, party.popular, live))}</td>
             <td>{party.support > 0 || party.won ? <>{signed(party.ideology)}<span>{ideologyLabel(party.ideology)}</span></> : '—'}</td>
           </tr>
         ))}</tbody>

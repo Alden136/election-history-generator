@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { RULES, rulePreset, type Preset, type Rule } from '../engine/rules';
+import type { VoteDisplay } from './voteDisplay';
 
 export const PRESET_LABELS: Record<Preset, string> = { faithful: 'Faithful', corrected: 'Corrected', custom: 'Custom' };
 
@@ -67,13 +68,15 @@ const descriptions: Record<Rule, { title: string; detail: string }> = {
   },
 };
 
-export function RuleSettings({ corrections, apply, dismiss }: {
+export function RuleSettings({ corrections, voteDisplay, apply, dismiss }: {
   corrections: readonly Rule[];
-  apply: (rules: readonly Rule[]) => void;
+  voteDisplay: VoteDisplay;
+  apply: (rules: readonly Rule[], voteDisplay: VoteDisplay) => void;
   dismiss: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [draft, setDraft] = useState<readonly Rule[]>(corrections);
+  const [display, setDisplay] = useState<VoteDisplay>(voteDisplay);
   const preset = rulePreset(draft);
 
   useEffect(() => {
@@ -88,7 +91,7 @@ export function RuleSettings({ corrections, apply, dismiss }: {
     <dialog className="rule-dialog" ref={dialog} aria-labelledby="rules-title" onClose={dismiss}>
       <form onSubmit={(event) => {
         event.preventDefault();
-        apply(RULES.filter((rule) => draft.includes(rule)));
+        apply(RULES.filter((rule) => draft.includes(rule)), display);
         dialog.current?.close();
       }}>
         <header className="rule-heading">
@@ -108,12 +111,23 @@ export function RuleSettings({ corrections, apply, dismiss }: {
         </header>
         <div className="rule-scroll" role="region" aria-labelledby="corrections-label" tabIndex={0}>
           <fieldset className="rule-list">
-            <legend className="sr-only" id="corrections-label">Individual corrections</legend>
+            <legend className="rule-section" id="corrections-label">Corrections</legend>
             {RULES.map((rule) => <label className="rule-row" key={rule}>
               <span><strong>{descriptions[rule].title}</strong><small id={`rule-${rule}`}>{descriptions[rule].detail}</small></span>
               <input type="checkbox" role="switch" checked={draft.includes(rule)} onChange={() => toggle(rule)}
                 aria-label={descriptions[rule].title} aria-describedby={`rule-${rule}`} />
             </label>)}
+          </fieldset>
+          <fieldset className="rule-list">
+            <legend className="rule-section">Display</legend>
+            <label className="rule-row">
+              <span><strong>Popular vote as a percentage</strong><small id="rule-vote-display">Show each party's share of the
+                popular vote instead of an estimated number of votes. The estimate scales real US turnout for that year to
+                this timeline's electoral votes. This changes only what is shown, not the simulation.</small></span>
+              <input type="checkbox" role="switch" checked={display === 'percent'}
+                onChange={(event) => setDisplay(event.target.checked ? 'percent' : 'count')}
+                aria-label="Popular vote as a percentage" aria-describedby="rule-vote-display" />
+            </label>
           </fieldset>
         </div>
         <footer className="rule-actions">

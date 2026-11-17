@@ -16,6 +16,7 @@ import { Playback } from './Playback';
 import { partyProfiles, presidencies, presidencyAt } from './profiles';
 import { StatePanel } from './StatePanel';
 import { SavedTimelines } from './SavedTimelines';
+import { readVoteDisplay, storeVoteDisplay, VoteDisplayContext } from './voteDisplay';
 import { addSaved, loadSaved, locationOf, removeSaved, SAVED_KEY, writeSaved, type SavedTimeline } from './saved';
 import { Statistics } from './Statistics';
 import { PRESET_LABELS, RuleSettings } from './RuleSettings';
@@ -48,6 +49,8 @@ export function App() {
   const [savedOpen, setSavedOpen] = useState(false);
   const savedButton = useRef<HTMLButtonElement>(null);
   const [saved, setSaved] = useState(() => loadSaved());
+  // Popular votes as estimated counts (the default) or percentages; a display choice kept in this browser.
+  const [voteDisplay, setVoteDisplay] = useState(readVoteDisplay);
   const [draft, setDraft] = useState(String(seed));
   const [view, setView] = useState<View>('election');
   const [historyTab, setHistoryTab] = useState<HistoryTab>('elections');
@@ -217,6 +220,7 @@ export function App() {
         <span className="topbar-range">1792 <i /> 2064</span>
       </div>
     </header>
+    <VoteDisplayContext.Provider value={voteDisplay}>
     <ProfileLinksContext.Provider value={profileLinks}>
     <main className="shell main" id="main" ref={main}>
       <div className="masthead">
@@ -301,7 +305,12 @@ export function App() {
       </div>
     </main>
     </ProfileLinksContext.Provider>
-    {rulesOpen && <RuleSettings corrections={corrections} apply={(selected) => navigate({ corrections: selected })}
+    </VoteDisplayContext.Provider>
+    {rulesOpen && <RuleSettings corrections={corrections} voteDisplay={voteDisplay} apply={(selected, display) => {
+      navigate({ corrections: selected });
+      setVoteDisplay(display);
+      storeVoteDisplay(display);
+    }}
       dismiss={() => { setRulesOpen(false); rulesButton.current?.focus(); }} />}
     {dialsOpen && <DialSettings dials={dials} apply={(next) => navigate({ dials: next })}
       dismiss={() => { setDialsOpen(false); dialsButton.current?.focus(); }} />}

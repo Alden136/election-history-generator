@@ -8,6 +8,7 @@ import { pictureWinner } from './Election';
 import { chamberBody, savePicture, type Caption } from './imageExport';
 import { Dot } from './Party';
 import { SaveImageButton } from './SaveImageButton';
+import { useVoteDisplay } from './voteDisplay';
 import { inkOn, PARTY_COLORS, percent, signed } from './presentation';
 
 interface Seat { x: number; y: number; party: number }
@@ -154,6 +155,7 @@ function CourtPanel({ court, sitting }: { court: readonly (number | null)[] | un
 
 export function Congress({ term, court, caption }: { term: Term; court: readonly (number | null)[] | undefined; caption: Caption }) {
   const { house, senate } = chambers(term);
+  const voteDisplay = useVoteDisplay();
   // Seat parties from left-wing to right-wing, as in a real chamber.
   const order = term.shownIdeology.map((ideology, party) => ({ ideology, party }))
     .sort((a, b) => a.ideology - b.ideology || a.party - b.party).map(({ party }) => party);
@@ -165,7 +167,7 @@ export function Congress({ term, court, caption }: { term: Term; court: readonly
     savePicture({
       kicker: `${name === 'House' ? 'House of Representatives' : 'Senate'} · ${term.index === 0 ? 'founding Congress' : `elected ${term.election}`} · sits ${sitting} · ${needed} of ${chamber.size} for a majority`,
       year: term.election, titleBefore: 'The ', titleAfter: ` ${name}`,
-      winnerLabel: 'President elected', winner: pictureWinner(term),
+      winnerLabel: 'President elected', winner: pictureWinner(term, voteDisplay),
       body: chamberBody({ ...seats, total: chamber.size, needed, majority: chamber.majority,
         parties: parties.map((party) => ({ party, seats: chamber.seats[party]! })) }),
       legend: [], caption,

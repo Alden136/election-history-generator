@@ -6,7 +6,9 @@ import { ideologyLabel } from '../engine/util';
 import { Dot } from './Party';
 import { PartyLink, PresidentLink } from './People';
 import { Icon } from './Icon';
-import { decidedByCongress, percent, signed } from './presentation';
+import { approximateCount, compactCount, decidedByCongress, estimatedWinnerVotes, percent, signed } from './presentation';
+import { electoralTotals } from '../engine/states';
+import { useVoteDisplay } from './voteDisplay';
 
 interface HistoryProps {
   terms: readonly Term[];
@@ -85,6 +87,7 @@ export function History({ terms, final, year, chooseYear }: HistoryProps & { fin
   const [query, setQuery] = useState('');
   const [party, setParty] = useState('');
   const [latestFirst, setLatestFirst] = useState(false);
+  const display = useVoteDisplay();
   const rows = terms.map((term) => ({ term, won: wonTerm(terms, term, final) }));
   const filtered = rows.filter(({ term, won }) => (party === '' || term.winnerParty === Number(party)) &&
     `${term.election} ${term.winnerName} ${partyName(term.winnerParty)} ${won.descriptor}`
@@ -116,7 +119,7 @@ export function History({ terms, final, year, chooseYear }: HistoryProps & { fin
                 <button className="sort-button" onClick={() => setLatestFirst(!latestFirst)}>Election <Icon name="down" size={14} /></button>
               </th>
               <th scope="col">President elected</th><th scope="col">Winning party</th>
-              <th scope="col" className="numeric">Popular vote</th><th scope="col" className="numeric">Electoral College</th>
+              <th scope="col" className="numeric" title={display === 'percent' ? undefined : 'Estimated from real US turnout for each year'}>Popular vote</th><th scope="col" className="numeric">Electoral College</th>
               <th scope="col" title="Whether the party already in the White House kept it">Incumbent party</th>
               <th scope="col">Congress leader</th><th scope="col" className="numeric">Share</th>
               <th scope="col" className="group-start">Term</th>
@@ -136,7 +139,10 @@ export function History({ terms, final, year, chooseYear }: HistoryProps & { fin
                 {term.election}<Icon name="arrow" size={14} />
               </button></th>
               <td><PresidentLink name={term.winnerName} began={won.began} /></td><td><PartyLink party={term.winnerParty} /></td>
-              <td className="numeric">{percent(term.winnerPopularShare)}</td>
+              <td className="numeric">{display === 'percent' ? percent(term.winnerPopularShare) : (() => {
+                const votes = estimatedWinnerVotes(term, electoralTotals(term.grid).live);
+                return <span title={`${percent(term.winnerPopularShare)} · ≈ ${approximateCount(votes)} votes`}>{compactCount(votes)}</span>;
+              })()}</td>
               <td className="numeric">{percent(term.winnerElectoralShare)}{decidedByCongress(term) && (
                 <small className="table-note">Contingent</small>
               )}</td>

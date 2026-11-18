@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ELECTIONS } from '../src/engine/data';
 import { CORRECTED_SETTINGS, DEFAULT_SETTINGS, simulate } from '../src/engine/simulate';
-import { describeMatch, hasConditions, matches, NO_CONDITIONS, TERRITORIES, workerSeeds, type FinderConditions } from '../src/app/timelineFinder';
+import { collectFinderResults, describeMatch, hasConditions, matches, NO_CONDITIONS, TERRITORIES, workerSeeds, type FinderConditions } from '../src/app/timelineFinder';
 
 describe('timeline finder', () => {
   it('accepts everything with no conditions', () => {
@@ -40,6 +40,29 @@ describe('timeline finder', () => {
       .filter((timeline) => matches(timeline, { ...NO_CONDITIONS, civilWars: 1 }));
     expect(found.length).toBeGreaterThan(10);
     expect(found.every((timeline) => timeline.summary.civilWars >= 1)).toBe(true);
+  });
+
+  it('waits for earlier seeds before stopping at the match limit', () => {
+    const sample = describeMatch(simulate(42));
+    const match = (seed: number) => ({ ...sample, seed });
+    const collect = collectFinderResults(100, 10, 2, 2);
+
+    expect(collect(1, 3, [match(101), match(103), match(105)]))
+      .toEqual({ searched: 0, found: [], state: 'running' });
+    expect(collect(0, 2, [match(100), match(102)]))
+      .toEqual({ searched: 2, found: [match(100), match(101)], state: 'full' });
+  });
+
+  it('tracks a consecutive search through the unsigned seed wrap', () => {
+    const sample = describeMatch(simulate(42));
+    const match = (seed: number) => ({ ...sample, seed });
+    const collect = collectFinderResults(0xfffffffe, 5, 10, 3);
+
+    expect(collect(2, 1, [match(0)])).toEqual({ searched: 0, found: [], state: 'running' });
+    expect(collect(0, 2, [match(0xfffffffe), match(1)]))
+      .toEqual({ searched: 1, found: [match(0xfffffffe)], state: 'running' });
+    expect(collect(1, 2, [match(0xffffffff), match(2)]))
+      .toEqual({ searched: 5, found: [match(0xfffffffe), match(0xffffffff), match(0), match(1), match(2)], state: 'done' });
   });
 
   it('shares seeds between workers without gaps or repeats', () => {

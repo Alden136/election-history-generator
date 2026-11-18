@@ -50,7 +50,9 @@ function GeoMap({ term, active, selected, fill, kind, label, tooltip, handlers }
   handlers: (i: number) => Record<string, () => void>;
 }) {
   const keyboard = (i: number) => (event: KeyboardEvent<SVGElement>) => {
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handlers(i).onClick!(); }
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    if (!event.repeat) handlers(i).onClick!();
   };
   const textColor = (i: number) => kind(i) === 'absent' ? '#4a4741' : kind(i) === 'seceded' ? '#f4f2ee' : inkOn(fill(i));
   const mapShapes = useMapShapes();

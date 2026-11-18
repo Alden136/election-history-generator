@@ -77,3 +77,22 @@ export function workerSeeds(start: number, count: number, index: number, workers
   for (let i = index; i < count; i += workers) seeds.push((start + i) >>> 0);
   return seeds;
 }
+
+export function collectFinderResults(start: number, count: number, limit: number, workers: number) {
+  const checkedByWorker = Array<number>(workers).fill(0);
+  let candidates: FinderMatch[] = [];
+  const offset = (match: FinderMatch) => (match.seed - start) >>> 0;
+
+  return (worker: number, checked: number, matches: FinderMatch[]) => {
+    checkedByWorker[worker] = checked;
+    // Commit only the consecutive prefix covered by every worker. Reports
+    // from faster workers may contain matches beyond that prefix.
+    const nextUnchecked = Math.min(count, ...checkedByWorker.map((n, index) => index + n * workers));
+    candidates = [...candidates, ...matches].sort((a, b) => offset(a) - offset(b)).slice(0, limit);
+    const found = candidates.filter((match) => offset(match) < nextUnchecked);
+    if (found.length === limit) {
+      return { searched: offset(found[limit - 1]!) + 1, found, state: 'full' as const };
+    }
+    return { searched: nextUnchecked, found, state: nextUnchecked === count ? 'done' as const : 'running' as const };
+  };
+}

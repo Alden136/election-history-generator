@@ -25,6 +25,14 @@ describe('estimated popular vote counts', () => {
     expect(estimatedWinnerVotes(term, live)).toBeCloseTo(estimatedWinnerVotes(term, 538) * live / 538, 0);
   });
 
+  it('estimates zero votes when every state is out', () => {
+    const term = simulate(714).terms.find((t) => t.election === 1924)!;
+    const live = electoralTotals(term.grid).live;
+    expect(live).toBe(0);
+    expect(term.winnerPopularShare).toBeGreaterThan(0);
+    expect(estimatedWinnerVotes(term, live)).toBe(0);
+  });
+
   it('projects past 2024 at the stated growth rate', () => {
     const term = { ...simulate(42).terms.find((t) => t.election === 2028)!, winnerPopularShare: 1 };
     const real2028 = estimatedWinnerVotes(term, 538) / (538 / 538);

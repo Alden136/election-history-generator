@@ -117,7 +117,7 @@ const realElectoralVotes = (year: number): number =>
 export function estimatedVotes(term: Term, share: number, liveElectoralVotes: number): number {
   const real = realElectoralVotes(term.election);
   // 1792 has no electoral vote counts in the simulation, so it is not scaled.
-  const scale = liveElectoralVotes > 0 && real > 0 ? liveElectoralVotes / real : 1;
+  const scale = term.index === 0 || real === 0 ? 1 : liveElectoralVotes / real;
   return share * realTotalVotes(term.election) * scale;
 }
 

@@ -33,11 +33,13 @@ export function Playback({ year, playing, setPlaying, chooseYear, advance }: {
   // Left and right arrows step through elections; space plays or pauses.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
+      if (event.defaultPrevented) return;
       const shortcut = shortcutFor(readKey(event));
       if (!shortcut) return;
       event.preventDefault();
-      if (shortcut === 'toggle') togglePlayback();
-      else if (shortcut === 'previous' && year > first) chooseYear(year - 4);
+      if (shortcut === 'toggle') {
+        if (!event.repeat) togglePlayback();
+      } else if (shortcut === 'previous' && year > first) chooseYear(year - 4);
       else if (shortcut === 'next' && year < last) chooseYear(year + 4);
     }
     window.addEventListener('keydown', onKey);

@@ -3,7 +3,7 @@ import { ELECTIONS, PARTIES } from '../engine/data';
 import type { Preset } from '../engine/rules';
 import type { Settings } from '../engine/types';
 import { modifiedDials } from './dials';
-import { hasConditions, NO_CONDITIONS, TERRITORIES, TERRITORY_NAMES, type FinderConditions, type FinderMatch } from './timelineFinder';
+import { collectFinderResults, hasConditions, NO_CONDITIONS, TERRITORIES, TERRITORY_NAMES, type FinderConditions, type FinderMatch } from './timelineFinder';
 import type { FinderMessage, FinderRequest } from './finder.worker';
 import { Party } from './Party';
 import { timelineUrl, type TimelineLocation } from './presentation';
@@ -19,7 +19,6 @@ const SEARCH_SIZES = [1000, 10000, 50000];
 const MATCH_LIMITS = [10, 25, 50];
 
 interface Run {
-  id: number;
   conditions: FinderConditions;
   settings: Settings;
   preset: Preset;
@@ -48,7 +47,6 @@ export function Finder({ settings, preset, year, openTimeline }: {
   const [limit, setLimit] = useState(25);
   const [run, setRun] = useState<Run>();
   const workers = useRef<Worker[]>([]);
-  const runs = useRef(0);
   const running = run?.state === 'running';
 
   useEffect(() => () => stopWorkers(), []);
@@ -61,14 +59,16 @@ export function Finder({ settings, preset, year, openTimeline }: {
   function search(start: number, base: Pick<Run, 'conditions' | 'settings' | 'preset' | 'limit' | 'count'>) {
     stopWorkers();
     const total = Math.min(base.count, 2 ** 32);
-    const id = ++runs.current;
-    const fresh: Run = { ...base, id, start, count: total, searched: 0, found: [], state: 'running' };
+    const fresh: Run = { ...base, start, count: total, searched: 0, found: [], state: 'running' };
     setRun(fresh);
     // Leave a core for the page; more than four workers gains little for the memory it costs.
     const size = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1));
-    let finished = 0;
-    const update = (change: (current: Run) => Run) => setRun((current) => current && current.id === id ? change(current) : current);
-    const fail = (message: string) => { stopWorkers(); update((current) => ({ ...current, state: 'error', message })); };
+    const collect = collectFinderResults(start, total, base.limit, size);
+    let current = fresh;
+    const fail = (message: string) => {
+      stopWorkers();
+      setRun({ ...current, state: 'error', message });
+    };
     try {
       for (let index = 0; index < size; index++) {
         const worker = new Worker(new URL('./finder.worker.ts', import.meta.url), { type: 'module' });
@@ -76,21 +76,13 @@ export function Finder({ settings, preset, year, openTimeline }: {
         worker.onmessage = ({ data }: MessageEvent<FinderMessage>) => {
           if (!workers.current.includes(worker)) return;
           if (data.type === 'error') { fail(data.message); return; }
-          if (data.type === 'complete') finished++;
-          update((current) => {
-            const found = [...current.found, ...data.found];
-            const searched = current.searched + data.searched;
-            if (found.length >= current.limit) {
-              stopWorkers();
-              // Keep the earliest seeds in search order, so the list does not depend on which worker was quicker.
-              const order = (match: FinderMatch) => (match.seed - current.start) >>> 0;
-              return { ...current, searched, found: found.sort((a, b) => order(a) - order(b)).slice(0, current.limit), state: 'full' };
-            }
-            if (finished === size) { stopWorkers(); return { ...current, searched, found, state: 'done' }; }
-            return { ...current, searched, found };
-          });
+          current = { ...current, ...collect(index, data.checked, data.found) };
+          if (current.state !== 'running') stopWorkers();
+          setRun(current);
         };
-        worker.onerror = () => fail('The search worker failed. Reload the app and try again.');
+        worker.onerror = () => {
+          if (workers.current.includes(worker)) fail('The search worker failed. Reload the app and try again.');
+        };
         worker.postMessage({ start, count: total, index, workers: size, settings: base.settings, conditions: base.conditions } satisfies FinderRequest);
       }
     } catch {
@@ -182,7 +174,7 @@ export function Finder({ settings, preset, year, openTimeline }: {
       {!run && <p className="muted">Every match is checked against the full timeline, using the rules and dials above.
         Results open in the Election map.</p>}
       {run && <FinderResults run={run} year={year} openTimeline={openTimeline}
-        more={() => search((run.start + run.count) >>> 0, run)} />}
+        more={() => search((run.start + run.searched) >>> 0, run)} />}
     </div>
   </section>;
 }
@@ -201,7 +193,7 @@ function FinderResults({ run, year, openTimeline, more }: {
   const share = run.searched ? run.found.length / run.searched : 0;
   const summary = {
     running: `Searched ${number(run.searched)} of ${number(run.count)} seeds · ${run.found.length} found`,
-    full: `Found ${run.found.length} matches in about ${number(run.searched)} seeds`,
+    full: `Found ${run.found.length} matches in ${number(run.searched)} seeds`,
     done: run.found.length
       ? `Searched all ${number(run.count)} seeds · ${run.found.length} found (${(share * 100).toFixed(share < 0.01 ? 2 : 1)}%)`
       : `No matches in ${number(run.count)} seeds. Try fewer conditions or search more seeds.`,

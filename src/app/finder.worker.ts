@@ -13,8 +13,7 @@ export interface FinderRequest {
 }
 
 export type FinderMessage =
-  | { type: 'progress'; searched: number; found: FinderMatch[] }
-  | { type: 'complete'; searched: number; found: FinderMatch[] }
+  | { type: 'progress'; checked: number; found: FinderMatch[] }
   | { type: 'error'; message: string };
 
 const REPORT_EVERY = 100;
@@ -32,11 +31,11 @@ self.onmessage = ({ data }: MessageEvent<FinderRequest>) => {
       searched++;
       // Matches go out with each progress report so the list fills in as the search runs.
       if (searched % REPORT_EVERY === 0 && searched < seeds.length) {
-        send({ type: 'progress', searched: REPORT_EVERY, found });
+        send({ type: 'progress', checked: searched, found });
         found = [];
       }
     }
-    send({ type: 'complete', searched: searched % REPORT_EVERY || REPORT_EVERY, found });
+    send({ type: 'progress', checked: searched, found });
   } catch (error) {
     send({ type: 'error', message: error instanceof Error ? error.message : 'The search could not finish.' });
   }

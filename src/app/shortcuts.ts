@@ -32,6 +32,6 @@ export function readKey(event: KeyboardEvent): KeyPress {
     key: event.key,
     modified: event.ctrlKey || event.altKey || event.metaKey,
     busy: Boolean(target?.closest(BUSY)) || Boolean(document.querySelector('dialog[open], [role="dialog"]')),
-    onButton: Boolean(target?.closest('button, a, summary')),
+    onButton: Boolean(target?.closest('button, a, summary, [role="button"]')),
   };
 }

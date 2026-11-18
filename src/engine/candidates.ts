@@ -59,7 +59,7 @@ export function traitsFor(seed: number, name: string): { charisma: number; exper
   return { charisma, experience };
 }
 
-const bandOf = (ideology: number) => Math.min(9, Math.max(0, Math.floor((ideology + 10) / 2)));
+export const bandOf = (ideology: number) => Math.min(9, Math.max(0, Math.floor((ideology + 10) / 2)));
 
 export interface NominationInput {
   election: number;
@@ -83,43 +83,62 @@ export interface NominationInput {
 export function chooseNominees(input: NominationInput, ctx: Context): Nominee[] {
   const { rng } = ctx;
   const seed = ctx.seed ?? 0;
-  const { election, support, president, previousPresident, potusParty, descriptor } = input;
-  const mayRun = president !== 'George Washington' && support[potusParty]! > 0;
-  const runsAgain = mayRun && (
-    (previousPresident === president ? rng.next() <= 0.2 : rng.next() <= 0.7) ||
-    (descriptor === 'DICTATORSHIP' && rng.next() <= 0.7));
-  // This year's list first, then the elections around it, so a crowded field still finds a free name.
-  const lists = [0, -4, 4, -8, 8, -12, 12, -16, 16].map((offset) => CANDIDATES[election + offset] ?? []);
-  const list = lists[0]!;
+  const { election, support, president, potusParty } = input;
+  const runsAgain = presidentRunsAgain(input, rng);
+  const lists = nameLists(election);
   const parties = support.map((share, party) => ({ share, party })).filter(({ share }) => share > 0)
     .sort((a, b) => b.share - a.share || a.party - b.party);
   const taken = new Set<string>();
   if (runsAgain) taken.add(president);
 
   return parties.map(({ party }) => {
-    let name = '';
     const incumbent = runsAgain && party === potusParty;
-    if (incumbent) name = president;
-    else {
-      const band = bandOf(party === P.THIRD ? input.center : input.ideology[party]!);
-      // Nearest band first, outwards: the listed name for this ideology, or the closest one still free,
-      // looking at nearby elections only when this year's list has no free name left.
-      for (const candidates of lists) {
-        for (let step = 0; step < 10 && !name; step++) {
-          for (const b of step === 0 ? [band] : [band - step, band + step]) {
-            const candidate = candidates[b];
-            if (candidate && !taken.has(candidate)) { name = candidate; break; }
-          }
-        }
-        if (name) break;
-      }
-      name ||= list[band] ?? '';
-      taken.add(name);
-    }
-    const traits = traitsFor(seed, name);
-    // A sitting president has run the country: they count as a veteran whatever their roll.
-    return { party, name, home: CANDIDATE_HOMES[name] ?? null, charisma: traits.charisma, experience: incumbent ? 2 : traits.experience, incumbent };
+    const name = incumbent ? president : pickName(lists, bandOf(party === P.THIRD ? input.center : input.ideology[party]!), taken);
+    return nomineeFor(party, name, incumbent, seed);
   }).sort((a, b) => a.party - b.party);
+}
+
+/** A person's nominee record: home state and the traits rolled for them in this timeline. */
+export function nomineeFor(party: number, name: string, incumbent: boolean, seed: number): Nominee {
+  const traits = traitsFor(seed, name);
+  // A sitting president has run the country: they count as a veteran whatever their roll.
+  return { party, name, home: CANDIDATE_HOMES[name] ?? null, charisma: traits.charisma, experience: incumbent ? 2 : traits.experience, incumbent };
+}
+
+/** Whether the sitting president runs again: the same chances the spreadsheet uses for a re-run. */
+export function presidentRunsAgain(input: Pick<NominationInput, 'support' | 'president' | 'previousPresident' | 'potusParty' | 'descriptor'>,
+  rng: Context['rng']): boolean {
+  const { support, president, previousPresident, potusParty, descriptor } = input;
+  const mayRun = president !== 'George Washington' && support[potusParty]! > 0;
+  return mayRun && (
+    (previousPresident === president ? rng.next() <= 0.2 : rng.next() <= 0.7) ||
+    (descriptor === 'DICTATORSHIP' && rng.next() <= 0.7));
+}
+
+/** This year's candidate list first, then the elections around it, so a crowded field still finds a free name. */
+export function nameLists(election: number): (readonly string[])[] {
+  return [0, -4, 4, -8, 8, -12, 12, -16, 16].map((offset) => CANDIDATES[election + offset] ?? []);
+}
+
+/**
+ * The listed name for an ideology band, or the closest one still free, nearest
+ * band first and outwards, looking at nearby elections only when this year's
+ * list has no free name left. The name is marked as taken.
+ */
+export function pickName(lists: readonly (readonly string[])[], band: number, taken: Set<string>): string {
+  let name = '';
+  for (const candidates of lists) {
+    for (let step = 0; step < 10 && !name; step++) {
+      for (const b of step === 0 ? [band] : [band - step, band + step]) {
+        const candidate = candidates[b];
+        if (candidate && !taken.has(candidate)) { name = candidate; break; }
+      }
+    }
+    if (name) break;
+  }
+  name ||= lists[0]![band] ?? '';
+  taken.add(name);
+  return name;
 }
 
 /** National support after the nominees' appeal: each party scaled, then all rescaled to the same total. */

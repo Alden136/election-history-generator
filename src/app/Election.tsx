@@ -263,7 +263,7 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
       <p className="winner-ideology">{ideologyLabel(winnerIdeology)} <span>{signed(winnerIdeology)}</span></p>
       {/* Each tag shows a pop-up with the trait's effect on hover, or on focus for keyboards and touch. */}
       {winnerNominee && <p className="winner-traits" aria-label="Candidate traits">
-        {traitEffects(winnerNominee).map(({ label, effect }, i) => <span key={label} className="trait" tabIndex={0}
+        {traitEffects(winnerNominee, term.primaries?.find((primary) => primary.party === term.winnerParty)).map(({ label, effect }, i) => <span key={label} className="trait" tabIndex={0}
           aria-describedby={`trait-effect-${i}`}>{label}<span className="trait-effect" role="tooltip" id={`trait-effect-${i}`}>
             <strong>{label}</strong>{effect}</span></span>)}
       </p>}

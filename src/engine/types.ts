@@ -1,4 +1,5 @@
 import type { Nominee } from './candidates';
+import type { Primary } from './primaries';
 import type { MidtermCongress } from './congress';
 import type { Rule } from './rules';
 import type { Rng } from './rng';
@@ -20,6 +21,8 @@ export interface Settings {
   midterms?: boolean;
   /** Candidate traits: an addition the spreadsheet does not have, off unless true. */
   candidateTraits?: boolean;
+  /** Primaries: an addition the spreadsheet does not have, off unless true; needs candidate traits. */
+  primaries?: boolean;
 }
 
 /** Who carried a state: a party index (0-14), or one of the two special values. */
@@ -122,6 +125,8 @@ export interface Term {
 
   /** Each party's nominee at this election, when candidate traits are on; null otherwise and for 1792. */
   nominees: Nominee[] | null;
+  /** Each named party's primary at this election, when primaries are on; null otherwise and for 1792. */
+  primaries: Primary[] | null;
 
   /** The Congress elected two years into this term, when midterms are on; null otherwise and for the founding term. */
   midterm: MidtermCongress | null;
@@ -139,6 +144,8 @@ export interface Context {
   corrections?: ReadonlySet<Rule>;
   midterms?: boolean;
   candidateTraits?: boolean;
+  /** Primaries, only ever true together with candidateTraits. */
+  primaries?: boolean;
   /** The timeline's seed, for traits rolled without the shared random numbers. */
   seed?: number;
 }

@@ -112,7 +112,7 @@ export function Finder({ settings, preset, year, openTimeline }: {
   return <section className="panel batch-panel finder" aria-labelledby="finder-title">
     <div className="history-controls">
       <div><h2 id="finder-title">Timeline finder</h2>
-        <p>{PRESET_LABELS[preset]}{settings.midterms ? ' · Midterms' : ''}{settings.candidateTraits ? ' · Traits' : ''} · {changed ? `${changed} adjusted dials` : 'Default dials'} · Random starting seed</p></div>
+        <p>{PRESET_LABELS[preset]}{settings.midterms ? ' · Midterms' : ''}{settings.candidateTraits ? ' · Traits' : ''}{settings.primaries ? ' · Primaries' : ''} · {changed ? `${changed} adjusted dials` : 'Default dials'} · Random starting seed</p></div>
     </div>
     <form className="finder-form" onSubmit={start}>
       <fieldset disabled={running}>
@@ -186,6 +186,7 @@ function FinderResults({ run, year, openTimeline, more }: {
     seed, year: run.conditions.winner?.year ?? year, corrections: run.settings.corrections ?? [], dials: run.settings.dials,
     midterms: run.settings.midterms ?? false,
     traits: run.settings.candidateTraits ?? false,
+    primaries: run.settings.primaries ?? false,
   });
   const open = (event: MouseEvent<HTMLAnchorElement>, seed: number) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

@@ -92,7 +92,7 @@ describe('candidate traits', () => {
 
   it('are on in the app by default, and travel in share links as traits=0 when off', () => {
     expect(readLocation('?seed=3&year=1900').traits).toBe(true);
-    const base = { seed: 3, year: 1900, corrections: RULES, dials: DEFAULT_DIALS, midterms: true };
+    const base = { seed: 3, year: 1900, corrections: RULES, dials: DEFAULT_DIALS, midterms: true, primaries: true };
     const off = timelineUrl('https://example.test/', { ...base, traits: false });
     expect(off.searchParams.get('traits')).toBe('0');
     expect(readLocation(off.search).traits).toBe(false);

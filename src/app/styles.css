@@ -825,3 +825,22 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 .trait:hover .trait-effect, .trait:focus .trait-effect { opacity: 1; visibility: visible; }
 @media (prefers-reduced-motion: reduce) { .trait-effect { transition: none; } }
 .results-table th .nominee { display: block; margin-top: 2px; color: var(--muted); font: 500 10px var(--sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+
+/* Primaries */
+.rule-row[data-disabled] { opacity: .55; cursor: not-allowed; }
+.primaries { margin-top: 18px; }
+.primary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); margin: 0; padding: 0; list-style: none; }
+.primary-race { padding: 12px 14px 14px; border-right: 1px solid var(--hair); border-bottom: 1px solid var(--hair); }
+.primary-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; font-weight: 700; font-size: 13px; }
+.primary-fight { flex: none; padding: 1px 6px; border: 1px solid var(--hair); color: var(--muted); font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; cursor: help; }
+.primary-race[data-fight="contested"] .primary-fight { border-color: var(--line); color: var(--text); }
+.primary-race[data-fight="bitter"] .primary-fight { border-color: var(--accent); background: var(--accent); color: #141414; }
+.primary-contenders { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.primary-contenders li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; padding-bottom: 6px;
+  background: linear-gradient(var(--hair), var(--hair)) bottom left / var(--share) 3px no-repeat; }
+.primary-contenders li[data-won] { background-image: linear-gradient(var(--text), var(--text)); }
+.primary-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--muted); }
+.primary-contenders li[data-won] .primary-name { color: var(--text); font-weight: 800; }
+.primary-name small { margin-left: 6px; color: var(--muted); font: 600 9px var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.primary-share { font: 600 12px var(--mono); text-align: right; }
+.primary-wing { grid-column: 1 / -1; color: var(--muted); font: 500 10px var(--mono); }

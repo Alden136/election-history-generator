@@ -3,6 +3,7 @@ import turnout from '../../data/turnout.json';
 import { RULES, type Rule } from '../engine/rules';
 import type { Dials, Term } from '../engine/types';
 import { CHARISMA_STEP, EXPERIENCE_STEP, HOME_STATE_BONUS, INCUMBENT_EDGE, type Nominee } from '../engine/candidates';
+import type { Fight, Primary, Wing } from '../engine/primaries';
 import { encodeDials, parseDials } from './dials';
 
 export const DEFAULT_SEED = 42;
@@ -34,6 +35,8 @@ export interface TimelineLocation {
   midterms: boolean;
   /** Candidate traits, an addition that is on unless the link says traits=0. */
   traits: boolean;
+  /** Primaries, an addition that is on unless the link says primaries=0. They only run with candidate traits on. */
+  primaries: boolean;
 }
 
 export function readLocation(search: string): TimelineLocation {
@@ -52,10 +55,11 @@ export function readLocation(search: string): TimelineLocation {
     dials: parseDials(params.get('dials')),
     midterms,
     traits: params.get('traits') !== '0',
+    primaries: params.get('primaries') !== '0',
   };
 }
 
-export function timelineUrl(href: string, { seed, year, corrections, dials, midterms, traits }: TimelineLocation): URL {
+export function timelineUrl(href: string, { seed, year, corrections, dials, midterms, traits, primaries }: TimelineLocation): URL {
   const url = new URL(href);
   url.searchParams.set('seed', String(seed));
   url.searchParams.set('year', String(year));
@@ -70,6 +74,8 @@ export function timelineUrl(href: string, { seed, year, corrections, dials, midt
   else url.searchParams.set('midterms', '0');
   if (traits) url.searchParams.delete('traits');
   else url.searchParams.set('traits', '0');
+  if (primaries) url.searchParams.delete('primaries');
+  else url.searchParams.set('primaries', '0');
   return url;
 }
 
@@ -162,9 +168,10 @@ export function approximateCount(votes: number): string {
   return rounded.toLocaleString('en-US');
 }
 
-/** The additions switched on, in words: "midterm elections and candidate traits". */
-export function additionsText(midterms: boolean, traits: boolean): string {
-  return [midterms && 'midterm elections', traits && 'candidate traits'].filter(Boolean).join(' and ');
+/** The additions switched on, in words: "midterm elections, candidate traits and primaries". Primaries count only with traits. */
+export function additionsText(midterms: boolean, traits: boolean, primaries = false): string {
+  const on = [midterms && 'midterm elections', traits && 'candidate traits', traits && primaries && 'primaries'].filter((item): item is string => Boolean(item));
+  return on.length > 1 ? `${on.slice(0, -1).join(', ')} and ${on.at(-1)}` : on.join('');
 }
 
 /** Candidate traits in words. */
@@ -180,7 +187,7 @@ const supportEffect = (fraction: number) => fraction === 0 ? 'No effect on suppo
  * pop-ups on the trait tags. Appeal effects scale the party's own national
  * support before every party is rescaled to the same total.
  */
-export function traitEffects(nominee: Nominee): { label: string; effect: string }[] {
+export function traitEffects(nominee: Nominee, primary?: Primary): { label: string; effect: string }[] {
   const traits: { label: string; effect: string }[] = [];
   if (nominee.home) {
     const state = STATES.find((s) => s.code === nominee.home)?.name ?? nominee.home;
@@ -195,5 +202,31 @@ export function traitEffects(nominee: Nominee): { label: string; effect: string 
     + supportEffect(experience)
     + (nominee.incumbent ? ' A sitting president always counts as a veteran.' : '') });
   if (nominee.incumbent) traits.push({ label: 'Incumbent', effect: `The sitting president is running again. ${supportEffect(INCUMBENT_EDGE)}` });
-  return traits;
+  return primary ? [...traits, ...primaryEffects(primary)] : traits;
+}
+
+/** Wings and fights in words. */
+export const WING_LABELS: Record<Wing, string> = { moderate: 'Moderate wing', ideologue: 'Ideologue wing' };
+export const FIGHT_LABELS: Record<Fight, string> = { unopposed: 'Unopposed', easy: 'Easy primary', contested: 'Contested primary', bitter: 'Bitter primary' };
+
+/** The primary vote as a score, winner first: "52–48". */
+export function primaryScore(primary: Primary): string {
+  const won = Math.round(primary.share * 100);
+  return `${won}–${100 - won}`;
+}
+
+/** The nominee's wing and how their primary went, with what each does, for the tag pop-ups. */
+export function primaryEffects(primary: Primary): { label: string; effect: string }[] {
+  const winner = primary.contenders[primary.winner]!;
+  const loser = primary.contenders.find((_, i) => i !== primary.winner);
+  if (!loser) return [{ label: FIGHT_LABELS.unopposed, effect: 'Renominated without a primary challenge. No cost to support.' }];
+  const cost = primary.cost ? supportEffect(-primary.cost) : 'No cost to support.';
+  const fight = primary.fight === 'bitter'
+    ? `Won ${primaryScore(primary)} against a rival wing ${Math.abs(winner.position - loser.position).toFixed(1)} points away. ${cost}`
+    : `Won ${primaryScore(primary)}. ${cost}`;
+  return [
+    { label: WING_LABELS[winner.wing], effect: `Ran from the party's ${winner.wing} wing at ${signed(winner.position)}. Voters see this position, `
+      + 'a winning president governs from it, and the party moves toward it.' },
+    { label: FIGHT_LABELS[primary.fight], effect: fight + (loser.incumbent ? ' Denied the sitting president renomination.' : '') },
+  ];
 }

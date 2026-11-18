@@ -5,6 +5,7 @@
  * formulas depend on each other. The same seed always gives the same result.
  */
 import { chooseNominees, homeStates, supportWithNominees } from './candidates';
+import { holdPrimaries, nomineePosition, partyAfterPrimaries, supportAfterPrimaries } from './primaries';
 import { electCongress, electMidterm, electPresident } from './congress';
 import { courtAverage, updateCourt } from './court';
 import {
@@ -60,6 +61,8 @@ export interface Timeline {
   midterms: boolean;
   /** True when candidate traits were simulated. */
   candidateTraits: boolean;
+  /** True when primaries were simulated (only ever with candidate traits). */
+  primaries: boolean;
   /** One entry per election, 1792 first. */
   terms: Term[];
   /** The president inaugurated in 2065, after the last election. */
@@ -149,6 +152,7 @@ function firstTerm(ctx: Context): Term {
     // The founding Congress sits through the first term; midterms begin in 1794.
     midterm: null,
     nominees: null,
+    primaries: null,
     court: [...START_COURT],
     courtAverage: courtAverage(START_COURT),
     grid: initialGrid(),
@@ -209,8 +213,10 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   const shares = blocShares(blocSizes);
   const center = electorateCenter(shares);
   // The sheet hand-types every party's ideology for 1796.
-  const ideology =
+  const drifted =
     index === 1 ? PARTIES.slice(0, NAMED_PARTY_COUNT).map((p) => p.startIdeology ?? 0) : updatePartyIdeology(prev, ctx);
+  // With primaries on, each party has moved toward the position its last nominee ran on.
+  const ideology = prev.primaries ? partyAfterPrimaries(drifted, prev.ideology, prev.primaries, prev.winnerParty) : drifted;
   const strength = updateStrengths(
     { election, potusParty, performance: perf, electionDayApproval: electionDay, prev, prev2 },
     ctx,
@@ -218,15 +224,21 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   const strengthThird = thirdPartyStrength(strength);
   const { votes, totals, nonvoters } = partyVotes(strength, ideology, shares, ctx.corrections);
   const national = nationalSupport(election, strength, strengthThird, totals, ideology, ctx);
-  const { shownIdeology } = national;
 
   // With candidate traits on, each party picks a nominee first, and who runs moves
   // the vote: their appeal shifts national support and their home state leans their
-  // way. With traits off nothing here draws a random number, so timelines are unchanged.
-  const nominees = ctx.candidateTraits
-    ? chooseNominees({ election, support: national.support, ideology, center, president, previousPresident: prev.president, potusParty, descriptor: label }, ctx)
-    : null;
-  const support = nominees ? supportWithNominees(national.support, nominees) : national.support;
+  // way. With primaries on too, the named parties pick them in a primary: a bitter
+  // fight costs support, and voters see the position the nominee ran on. With the
+  // additions off nothing here draws a random number, so timelines are unchanged.
+  const nomination = { election, support: national.support, ideology, center, president, previousPresident: prev.president, potusParty, descriptor: label };
+  const primaryRun = ctx.candidateTraits && ctx.primaries ? holdPrimaries({ ...nomination, performance: perf, potusIdeology }, ctx) : null;
+  const nominees = primaryRun?.nominees ?? (ctx.candidateTraits ? chooseNominees(nomination, ctx) : null);
+  const primaries = primaryRun?.primaries ?? null;
+  const appeal = nominees ? supportWithNominees(national.support, nominees) : national.support;
+  const support = primaries ? supportAfterPrimaries(appeal, primaries) : appeal;
+  const shownIdeology = primaries
+    ? national.shownIdeology.map((score, party) => nomineePosition(primaries, party) ?? score)
+    : national.shownIdeology;
 
   // The states vote.
   const grid = nextGrid(
@@ -281,6 +293,7 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
     congressLeader: congress.leader,
     closeness: congress.closeness,
     nominees,
+    primaries,
     midterm,
     strength,
     strengthThird,
@@ -304,7 +317,8 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
   const corrections = RULES.filter((rule) => settings.corrections?.includes(rule));
   const midterms = settings.midterms === true;
   const candidateTraits = settings.candidateTraits === true;
-  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms, candidateTraits, seed };
+  const primaries = candidateTraits && settings.primaries === true;
+  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms, candidateTraits, primaries, seed };
 
   const terms: Term[] = [firstTerm(ctx)];
   while (terms.length < ELECTIONS.length) terms.push(nextTerm(terms, ctx));
@@ -342,6 +356,7 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
     corrections,
     midterms,
     candidateTraits,
+    primaries,
     terms,
     finalPresident,
     finalExpansions,

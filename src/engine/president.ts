@@ -7,6 +7,7 @@
 import { CANDIDATES, P } from './data';
 import type { Context, Term } from './types';
 import { clamp } from './util';
+import { nomineePosition } from './primaries';
 
 /** Elections where the sheet makes a dramatic term five times as likely. */
 const CRISIS_ELECTIONS: ReadonlySet<number> = new Set([
@@ -14,9 +15,12 @@ const CRISIS_ELECTIONS: ReadonlySet<number> = new Set([
   1972, 1988, 1992, 2020,
 ]);
 
-/** The president's ideology is their party's score from the previous term. */
-export function presidentIdeology(party: number, prev: Pick<Term, 'center' | 'ideology'>): number {
-  return party === P.THIRD ? prev.center : prev.ideology[party]!;
+/**
+ * The president's ideology is their party's score from the previous term, or with
+ * primaries on, the position they won their primary on.
+ */
+export function presidentIdeology(party: number, prev: Pick<Term, 'center' | 'ideology'> & Partial<Pick<Term, 'primaries'>>): number {
+  return nomineePosition(prev.primaries, party) ?? (party === P.THIRD ? prev.center : prev.ideology[party]!);
 }
 
 /** A president starts higher after a decisive win, or with a dominant Congress. */

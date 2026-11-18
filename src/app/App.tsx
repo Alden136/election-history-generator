@@ -11,6 +11,7 @@ import { Finder } from './Finder';
 import { ElectionRail, History } from './History';
 import { Icon } from './Icon';
 import { Overview } from './Overview';
+import { PrimariesPanel } from './Primaries';
 import { Parties, Presidents, ProfileLinksContext } from './People';
 import { Playback } from './Playback';
 import { partyProfiles, presidencies, presidencyAt } from './profiles';
@@ -44,7 +45,9 @@ type HistoryTab = typeof historyTabs[number]['id'];
 
 export function App() {
   const [location, setLocation] = useState(() => readLocation(window.location.search));
-  const { seed, year, corrections, dials, midterms, traits } = location;
+  const { seed, year, corrections, dials, midterms, traits, primaries } = location;
+  // Primaries only run with candidate traits on.
+  const withPrimaries = traits && primaries;
   const [playing, setPlaying] = useState(false);
   const [dialsOpen, setDialsOpen] = useState(false);
   const dialsButton = useRef<HTMLButtonElement>(null);
@@ -68,12 +71,12 @@ export function App() {
   const shareTimer = useRef<number | undefined>(undefined);
   const shareRequest = useRef(0);
   const main = useRef<HTMLElement>(null);
-  const settings = useMemo(() => ({ dials, corrections, midterms, candidateTraits: traits }), [dials, corrections, midterms, traits]);
+  const settings = useMemo(() => ({ dials, corrections, midterms, candidateTraits: traits, primaries: withPrimaries }), [dials, corrections, midterms, traits, withPrimaries]);
   const timeline = useMemo(() => simulate(seed, settings), [seed, settings]);
   const adjusted = modifiedDials(dials).length;
-  const timelineKey = `${seed}/${corrections.join(',')}/${encodeDials(dials)}/${midterms ? 'midterms' : ''}/${traits ? 'traits' : ''}`;
-  const additions = additionsText(midterms, traits);
-  const additionCount = Number(midterms) + Number(traits);
+  const timelineKey = `${seed}/${corrections.join(',')}/${encodeDials(dials)}/${midterms ? 'midterms' : ''}/${traits ? 'traits' : ''}/${withPrimaries ? 'primaries' : ''}`;
+  const additions = additionsText(midterms, traits, primaries);
+  const additionCount = Number(midterms) + Number(traits) + Number(withPrimaries);
   // A midterm year shows the Congress elected then; everything else follows the presidential election before it.
   const electionYear = presidentialYear(year);
   const isMidterm = year !== electionYear;
@@ -296,6 +299,7 @@ export function App() {
                 winnerBegan={timeline.terms[term.index + 1]?.termBegan ?? timeline.finalPresident.termBegan} />
             </>}
         </div>
+        {!isMidterm && <PrimariesPanel term={term} />}
         <Overview timeline={timeline} openElection={openElection} />
         <Congress term={term} court={timeline.terms[term.index + 1]?.court} caption={caption}
           midterms={midterms} midterm={timeline.terms[term.index + 1]?.midterm} showMidterm={isMidterm} openYear={chooseYear} />
@@ -324,8 +328,8 @@ export function App() {
     </main>
     </ProfileLinksContext.Provider>
     </VoteDisplayContext.Provider>
-    {rulesOpen && <RuleSettings corrections={corrections} midterms={midterms} traits={traits} voteDisplay={voteDisplay} apply={(selected, display, withMidterms, withTraits) => {
-      navigate({ corrections: selected, midterms: withMidterms, traits: withTraits, ...(withMidterms ? {} : { year: electionYear }) });
+    {rulesOpen && <RuleSettings corrections={corrections} midterms={midterms} traits={traits} primaries={primaries} voteDisplay={voteDisplay} apply={(selected, display, withMidterms, withTraits, withPrimaryRaces) => {
+      navigate({ corrections: selected, midterms: withMidterms, traits: withTraits, primaries: withPrimaryRaces, ...(withMidterms ? {} : { year: electionYear }) });
       setVoteDisplay(display);
       storeVoteDisplay(display);
     }}

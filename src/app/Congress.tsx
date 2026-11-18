@@ -2,12 +2,12 @@ import type { CSSProperties } from 'react';
 import { partyName } from '../engine/data';
 import type { Term } from '../engine/types';
 import { ideologyLabel } from '../engine/util';
-import { useState } from 'react';
 import type { MidtermCongress } from '../engine/congress';
 import { chambers, midtermChambers, type Chamber } from './chambers';
 import { bench, COLOR_LIMIT, ideologyColor } from './court';
 import { pictureWinner } from './Election';
 import { chamberBody, savePicture, type Caption } from './imageExport';
+import { Icon } from './Icon';
 import { Dot } from './Party';
 import { SaveImageButton } from './SaveImageButton';
 import { useVoteDisplay } from './voteDisplay';
@@ -155,7 +155,7 @@ function CourtPanel({ court, sitting }: { court: readonly (number | null)[] | un
   </section>;
 }
 
-export function Congress({ term, court, caption, midterms, midterm }: {
+export function Congress({ term, court, caption, midterms, midterm, showMidterm, openYear }: {
   term: Term;
   court: readonly (number | null)[] | undefined;
   caption: Caption;
@@ -163,11 +163,11 @@ export function Congress({ term, court, caption, midterms, midterm }: {
   midterms: boolean;
   /** The midterm held two years after this election; undefined after 2064, which is not simulated. */
   midterm: MidtermCongress | null | undefined;
+  /** True on a midterm's page: show the Congress it elected. */
+  showMidterm: boolean;
+  openYear: (year: number) => void;
 }) {
-  // Which Congress the charts show; the choice stays as the year changes.
-  const [view, setView] = useState<'elected' | 'midterm'>('elected');
-  const showMidterm = midterms && view === 'midterm' && Boolean(midterm);
-  const { house, senate } = showMidterm ? midtermChambers(term, midterm!) : chambers(term);
+  const { house, senate } = showMidterm && midterm ? midtermChambers(term, midterm) : chambers(term);
   const midtermYear = term.election + 2;
   const voteDisplay = useVoteDisplay();
   // Seat parties from left-wing to right-wing, as in a real chamber.
@@ -195,14 +195,12 @@ export function Congress({ term, court, caption, midterms, midterm }: {
   return <section className="congress" aria-labelledby="congress-title">
     <div className="section-heading">
       <h2 id="congress-title">Congress and the Court</h2>
-      {midterms && <div className="segmented congress-view" role="group" aria-label="Which Congress">
-        <button type="button" aria-pressed={!showMidterm} onClick={() => setView('elected')}>
-          {term.index === 0 ? 'Founding' : `Elected ${term.election}`}</button>
-        <button type="button" aria-pressed={showMidterm} disabled={!midterm}
-          title={midterm ? undefined : 'The simulation ends after 2064, so this midterm is not simulated'}
-          onClick={() => setView('midterm')}>Midterm {midtermYear}</button>
-      </div>}
       <span className="eyebrow">{heading}</span>
+      {midterms && (showMidterm
+        ? <button type="button" className="text-button congress-jump" onClick={() => openYear(term.election)}>
+          <Icon name="left" size={14} />{term.index === 0 ? 'Founding Congress' : `Elected ${term.election}`}</button>
+        : midterm && <button type="button" className="text-button congress-jump" onClick={() => openYear(midtermYear)}>
+          {midtermYear} midterm<Icon name="arrow" size={14} /></button>)}
     </div>
     <div className="chambers">
       <ChamberPanel title="House of Representatives" chamber={house} order={order} save={(layout) => saveChamber('House', house, layout)} />

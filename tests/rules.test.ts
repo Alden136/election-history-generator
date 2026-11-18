@@ -230,7 +230,7 @@ describe('preset replay', () => {
   });
 
   it('defaults links to Corrected, writes Faithful as none, and discards unknown rules', () => {
-    expect(readLocation('?seed=7&year=1960')).toEqual({ seed: 7, year: 1960, corrections: RULES, dials: DEFAULT_DIALS, midterms: false });
+    expect(readLocation('?seed=7&year=1960')).toEqual({ seed: 7, year: 1960, corrections: RULES, dials: DEFAULT_DIALS, midterms: true });
     expect(readLocation('?seed=7&year=1960&rules=none').corrections).toEqual([]);
     const current = readLocation('?seed=7&year=1960&rules=unknown,whig-loyalty,whig-loyalty');
     expect(current.corrections).toEqual(['whig-loyalty']);

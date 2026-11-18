@@ -126,7 +126,7 @@ export function RuleSettings({ corrections, midterms, voteDisplay, apply, dismis
               <span><strong>Midterm elections</strong><small id="rule-midterms">Elect Congress again two years into each term,
                 starting in 1794. The president's party usually loses ground, more so when the term is going badly. The new
                 Congress shapes approval, the Supreme Court and deadlocked elections, so this gives a different history for the
-                same seed. The spreadsheet has no midterms, so this is off by default and not part of either preset.</small></span>
+                same seed. On by default; the spreadsheet has no midterms, so switch this off to match it exactly.</small></span>
               <input type="checkbox" role="switch" checked={withMidterms} onChange={(event) => setWithMidterms(event.target.checked)}
                 aria-label="Midterm elections" aria-describedby="rule-midterms" />
             </label>

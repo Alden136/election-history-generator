@@ -1,28 +1,29 @@
 import { useEffect, useState } from 'react';
-import { ELECTIONS } from '../engine/data';
 import { Icon } from './Icon';
 import { readKey, shortcutFor } from './shortcuts';
 
-const first = ELECTIONS[0]!;
-const last = ELECTIONS.at(-1)!;
-
-export function Playback({ year, playing, setPlaying, chooseYear, advance }: {
+export function Playback({ year, years, playing, setPlaying, chooseYear, advance }: {
   year: number;
+  /** Every year to step through: presidential elections, and midterms when they are on. */
+  years: readonly number[];
   playing: boolean;
   setPlaying: (playing: boolean) => void;
   chooseYear: (year: number) => void;
   advance: (year: number) => void;
 }) {
   const [delay, setDelay] = useState(1200);
+  const first = years[0]!;
+  const last = years.at(-1)!;
+  const index = Math.max(0, years.indexOf(year));
   useEffect(() => {
     if (!playing || year >= last) return;
     const timer = window.setTimeout(() => {
-      const next = year + 4;
+      const next = years[years.indexOf(year) + 1] ?? last;
       advance(next);
       if (next === last) setPlaying(false);
     }, delay);
     return () => window.clearTimeout(timer);
-  }, [advance, delay, playing, setPlaying, year]);
+  }, [advance, delay, playing, setPlaying, year, years, last]);
 
   function togglePlayback() {
     if (playing) { setPlaying(false); return; }
@@ -39,8 +40,8 @@ export function Playback({ year, playing, setPlaying, chooseYear, advance }: {
       event.preventDefault();
       if (shortcut === 'toggle') {
         if (!event.repeat) togglePlayback();
-      } else if (shortcut === 'previous' && year > first) chooseYear(year - 4);
-      else if (shortcut === 'next' && year < last) chooseYear(year + 4);
+      } else if (shortcut === 'previous' && index > 0) chooseYear(years[index - 1]!);
+      else if (shortcut === 'next' && index < years.length - 1) chooseYear(years[index + 1]!);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -56,9 +57,9 @@ export function Playback({ year, playing, setPlaying, chooseYear, advance }: {
     </div>
     <div className="playback-track">
       <label className="sr-only" htmlFor="playback-year">Playback year</label>
-      <input id="playback-year" type="range" min={first} max={last} step={4} value={year}
-        onChange={(event) => chooseYear(Number(event.target.value))} />
-      <div><span>{first}</span><output htmlFor="playback-year">{year} · {ELECTIONS.indexOf(year) + 1}/{ELECTIONS.length}</output><span>{last}</span></div>
+      <input id="playback-year" type="range" min={0} max={years.length - 1} step={1} value={index}
+        aria-valuetext={String(year)} onChange={(event) => chooseYear(years[Number(event.target.value)]!)} />
+      <div><span>{first}</span><output htmlFor="playback-year">{year} · {index + 1}/{years.length}</output><span>{last}</span></div>
       <p className="playback-keys"><kbd>←</kbd><kbd>→</kbd> step through elections <kbd>Space</kbd> play or pause</p>
     </div>
     <label className="playback-speed">Speed

@@ -792,3 +792,26 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 /* Congress: elected or midterm, when midterms are on */
 .congress-view { display: inline-flex; margin-left: auto; }
 .congress-view button:disabled { color: var(--muted); cursor: not-allowed; text-decoration: line-through; }
+
+/* Midterm elections */
+.election-layout[data-midterm] .midterm-results { grid-column: 2 / -1; }
+.midterm-results { display: flex; flex-direction: column; }
+.midterm-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); flex: 1; }
+.midterm-hero { border-right: 3px solid var(--line); }
+.midterm-hero .winner-meta > span:first-child { display: inline-flex; gap: 5px; align-items: baseline; }
+.midterm-table { display: flex; flex-direction: column; min-width: 0; }
+.midterm-table td[data-change='1'] { color: #1d6b2f; font-weight: 700; }
+.midterm-table td[data-change='-1'] { color: #a8160f; font-weight: 700; }
+.midterm-note { margin: auto 0 0; padding: 12px 15px; border-top: 3px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.5; }
+.midterm-note .text-button { display: inline; font-weight: 800; color: var(--text); text-decoration: underline 2px var(--accent); text-underline-offset: 3px; }
+.rail-midterm { background: var(--sunk); }
+.rail-midterm .rail-name { color: var(--muted); font-weight: 700; }
+.rail-midterm[aria-current] .rail-name { color: #f4f2ee; }
+.midterm-row > * { background: var(--sunk); }
+.midterm-president { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.congress-jump { align-self: center; font: 800 11px var(--sans); text-transform: uppercase; letter-spacing: .05em; text-decoration: underline 2px var(--accent); text-underline-offset: 3px; }
+@media (max-width: 1000px) {
+  .election-layout[data-midterm] .midterm-results { grid-column: 1 / -1; }
+  .midterm-body { grid-template-columns: minmax(0, 1fr); }
+  .midterm-hero { border-right: 0; border-bottom: 3px solid var(--line); }
+}

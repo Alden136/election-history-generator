@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { ELECTIONS, partyName, STATES } from '../engine/data';
+import { partyName, STATES } from '../engine/data';
 import { electoralTotals } from '../engine/states';
 import { NO_VOTE, SECEDED, type Term } from '../engine/types';
 import { ideologyLabel } from '../engine/util';
@@ -9,7 +9,7 @@ import { geoBody, savePicture, tileBody, type Caption, type LegendItem, type Map
 import { PartyLink, PresidentLink } from './People';
 import { SaveImageButton } from './SaveImageButton';
 import { useVoteDisplay, type VoteDisplay } from './voteDisplay';
-import { approximateCount, compactCount, decidedByCongress, estimatedVotes, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
+import { approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
 
 type MapStyle = 'map' | 'tiles';
@@ -107,17 +107,23 @@ function GeoMap({ term, active, selected, fill, kind, label, tooltip, handlers }
   </svg>;
 }
 
-export function YearPicker({ year, chooseYear }: { year: number; chooseYear: (year: number) => void }) {
-  const index = ELECTIONS.indexOf(year);
+export function YearPicker({ year, years, chooseYear }: {
+  year: number;
+  /** Every year to step through: presidential elections, and midterms when they are on. */
+  years: readonly number[];
+  chooseYear: (year: number) => void;
+}) {
+  const index = years.indexOf(year);
   return <div className="year-picker">
     <button className="icon-button" aria-label="Previous election" disabled={index === 0}
-      onClick={() => chooseYear(ELECTIONS[index - 1]!)}><Icon name="left" /></button>
+      onClick={() => chooseYear(years[index - 1]!)}><Icon name="left" /></button>
     <div className="year-select"><select aria-label="Election year" value={year}
       onChange={(event) => chooseYear(Number(event.target.value))}>
-      {ELECTIONS.map((election) => <option key={election} value={election}>{election}</option>)}
+      {/* The heading says when a year is a midterm; the narrow picker shows only the year. */}
+      {years.map((election) => <option key={election} value={election} aria-label={isMidtermYear(election) ? `${election} midterm` : undefined}>{election}</option>)}
     </select><Icon name="down" size={13} /></div>
-    <button className="icon-button" aria-label="Next election" disabled={index === ELECTIONS.length - 1}
-      onClick={() => chooseYear(ELECTIONS[index + 1]!)}><Icon name="right" /></button>
+    <button className="icon-button" aria-label="Next election" disabled={index === years.length - 1}
+      onClick={() => chooseYear(years[index + 1]!)}><Icon name="right" /></button>
   </div>;
 }
 

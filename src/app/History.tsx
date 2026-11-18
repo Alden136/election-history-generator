@@ -9,15 +9,26 @@ import { Icon } from './Icon';
 import { approximateCount, compactCount, decidedByCongress, estimatedWinnerVotes, percent, signed } from './presentation';
 import { electoralTotals } from '../engine/states';
 import { useVoteDisplay } from './voteDisplay';
+import { midtermSummary, seatChange, type MidtermSummary } from './midtermView';
 
 interface HistoryProps {
   terms: readonly Term[];
   year: number;
   chooseYear: (year: number) => void;
+  /** When midterms are on, each one is listed after the election before it. */
+  midterms: boolean;
 }
 
-export function ElectionRail({ terms, year, chooseYear, openHistory }: HistoryProps & { openHistory: () => void }) {
+/** The midterm two years after each election, when midterms are on. */
+const midtermsOf = (terms: readonly Term[], on: boolean) =>
+  new Map(on ? terms.flatMap((term) => {
+    const summary = midtermSummary(term, terms[term.index + 1]);
+    return summary ? [[term.election, summary] as const] : [];
+  }) : []);
+
+export function ElectionRail({ terms, year, chooseYear, openHistory, midterms }: HistoryProps & { openHistory: () => void }) {
   const selected = useRef<HTMLButtonElement>(null);
+  const midtermRows = midtermsOf(terms, midterms);
   const rail = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -41,17 +52,27 @@ export function ElectionRail({ terms, year, chooseYear, openHistory }: HistoryPr
     <aside className="panel rail" aria-labelledby="rail-title">
       <div className="panel-header">
         <h2 id="rail-title">Elections</h2>
-        <span className="panel-count">{terms.length}</span>
+        <span className="panel-count">{terms.length + midtermRows.size}</span>
       </div>
       <div ref={rail} className="rail-list" aria-label="Election years">
-        {terms.map((term) => (
-          <button ref={term.election === year ? selected : undefined} key={term.election} className="rail-row"
-            aria-current={term.election === year ? 'true' : undefined} onClick={() => chooseYear(term.election)}>
-            <span className="rail-year">{term.election}</span>
-            <Dot party={term.winnerParty} />
-            <span className="rail-name">{term.winnerName}</span>
-          </button>
-        ))}
+        {terms.map((term) => {
+          const midterm = midtermRows.get(term.election);
+          return [
+            <button ref={term.election === year ? selected : undefined} key={term.election} className="rail-row"
+              aria-current={term.election === year ? 'true' : undefined} onClick={() => chooseYear(term.election)}>
+              <span className="rail-year">{term.election}</span>
+              <Dot party={term.winnerParty} />
+              <span className="rail-name">{term.winnerName}</span>
+            </button>,
+            midterm && <button ref={midterm.year === year ? selected : undefined} key={midterm.year} className="rail-row rail-midterm"
+              aria-current={midterm.year === year ? 'true' : undefined} onClick={() => chooseYear(midterm.year)}
+              aria-label={`${midterm.year} midterm: ${partyName(midterm.party)} ${seatChange(midterm.houseChange)} House seats`}>
+              <span className="rail-year">{midterm.year}</span>
+              <Dot party={midterm.party} />
+              <span className="rail-name">Midterm · {seatChange(midterm.houseChange)} House</span>
+            </button>,
+          ];
+        })}
       </div>
       <button type="button" className="rail-footer" onClick={openHistory}>View full history <Icon name="arrow" /></button>
     </aside>
@@ -83,21 +104,31 @@ function wonTerm(terms: readonly Term[], term: Term, final: FinalPresident): Won
 const ideology = (score: number) => <>{signed(score)} <small className="table-sub">{ideologyLabel(score)}</small></>;
 const maybe = (value: number | undefined, format: (n: number) => string) => value === undefined ? '—' : format(value);
 
-export function History({ terms, final, year, chooseYear }: HistoryProps & { final: FinalPresident }) {
+export function History({ terms, final, year, chooseYear, midterms }: HistoryProps & { final: FinalPresident }) {
   const [query, setQuery] = useState('');
   const [party, setParty] = useState('');
   const [latestFirst, setLatestFirst] = useState(false);
   const display = useVoteDisplay();
-  const rows = terms.map((term) => ({ term, won: wonTerm(terms, term, final) }));
-  const filtered = rows.filter(({ term, won }) => (party === '' || term.winnerParty === Number(party)) &&
-    `${term.election} ${term.winnerName} ${partyName(term.winnerParty)} ${won.descriptor}`
-      .toLowerCase().includes(query.trim().toLowerCase()));
+  const midtermRows = midtermsOf(terms, midterms);
+  const needle = query.trim().toLowerCase();
+  type Row = { kind: 'election'; term: Term; won: WonTerm } | { kind: 'midterm'; term: Term; midterm: MidtermSummary };
+  const rows: Row[] = terms.flatMap((term): Row[] => {
+    const midterm = midtermRows.get(term.election);
+    return [{ kind: 'election', term, won: wonTerm(terms, term, final) }, ...(midterm ? [{ kind: 'midterm' as const, term, midterm }] : [])];
+  });
+  const filtered = rows.filter((row) => row.kind === 'election'
+    ? (party === '' || row.term.winnerParty === Number(party)) &&
+      `${row.term.election} ${row.term.winnerName} ${partyName(row.term.winnerParty)} ${row.won.descriptor}`.toLowerCase().includes(needle)
+    : (party === '' || row.midterm.party === Number(party)) &&
+      `${row.midterm.year} midterm ${row.midterm.president} ${partyName(row.midterm.party)}`.toLowerCase().includes(needle));
   if (latestFirst) filtered.reverse();
+  const shown = filtered.length;
+  const total = rows.length;
 
   return (
     <section className="panel history-panel" aria-labelledby="history-title">
       <div className="history-controls">
-        <div><h2 id="history-title">Political history</h2><p>{filtered.length} of {terms.length} elections</p></div>
+        <div><h2 id="history-title">Political history</h2><p>{shown} of {total} elections{midterms ? ` · ${midtermRows.size} midterms` : ''}</p></div>
         <div className="filters">
           <label className="search"><Icon name="search" /><input type="search" aria-label="Search election history"
             placeholder="Search year, president or event" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
@@ -133,7 +164,8 @@ export function History({ terms, final, year, chooseYear }: HistoryProps & { fin
               <th scope="col" className="numeric">Election-day approval</th>
             </tr>
           </thead>
-          <tbody>{filtered.map(({ term, won }) => (
+          <tbody>{filtered.map((row) => row.kind === 'midterm' ? <MidtermRow key={row.midterm.year} summary={row.midterm}
+            term={row.term} selected={row.midterm.year === year} chooseYear={chooseYear} /> : (({ term, won }) => (
             <tr key={term.election} data-selected={term.election === year}>
               <th scope="row"><button className="text-button year-link" onClick={() => chooseYear(term.election)}>
                 {term.election}<Icon name="arrow" size={14} />
@@ -159,13 +191,30 @@ export function History({ terms, final, year, chooseYear }: HistoryProps & { fin
               <td className="numeric">{maybe(won.stability, (n) => n.toFixed(2))}</td>
               <td className="numeric">{maybe(won.electionDayApproval, percent)}</td>
             </tr>
-          ))}</tbody>
+          ))(row))}</tbody>
         </table>
         {filtered.length === 0 && <p className="empty">No elections match these filters.</p>}
       </div>
       <p className="history-footnote">Term figures describe the four years after each election, the term that election
-        started. The 2065 term has no election after it, so the simulation does not score its approval, performance,
+        started.{midterms ? ' Midterm rows show the House and Senate seats the president\'s party gained or lost, and who led Congress afterwards.' : ''} The 2065 term has no election after it, so the simulation does not score its approval, performance,
         stability or court.</p>
     </section>
   );
+}
+
+/** A midterm in the elections table: the Congress result, with the term columns left to the election before it. */
+function MidtermRow({ summary, term, selected, chooseYear }: {
+  summary: MidtermSummary; term: Term; selected: boolean; chooseYear: (year: number) => void;
+}) {
+  const leader = summary.after.house.majority;
+  return <tr className="midterm-row" data-selected={selected}>
+    <th scope="row"><button className="text-button year-link" onClick={() => chooseYear(summary.year)}>
+      {summary.year}<Icon name="arrow" size={14} /></button><small className="table-note">Midterm</small></th>
+    <td colSpan={2}><span className="midterm-president">{summary.president} · <PartyLink party={summary.party} /></span></td>
+    <td className="numeric" colSpan={2}>{seatChange(summary.houseChange)} House · {seatChange(summary.senateChange)} Senate</td>
+    <td>{summary.houseChange < 0 ? <span className="table-lost">Lost seats</span> : 'Held or gained'}</td>
+    <td>{leader === null ? 'No majority' : <PartyLink party={leader} />}</td>
+    <td className="numeric">{leader === null ? '—' : percent(summary.after.house.seats[leader]! / summary.after.house.size)}</td>
+    <td className="group-start muted" colSpan={9}>Two years into the {term.election + 1}–{term.election + 5} term</td>
+  </tr>;
 }

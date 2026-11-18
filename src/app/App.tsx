@@ -21,7 +21,9 @@ import { addSaved, loadSaved, locationOf, removeSaved, SAVED_KEY, writeSaved, ty
 import { Statistics } from './Statistics';
 import { StoryPage } from './StoryPage';
 import { PRESET_LABELS, RuleSettings } from './RuleSettings';
-import { MAX_SEED, parseSeed, readLocation, timelineUrl, type TimelineLocation } from './presentation';
+import { electionYears, MAX_SEED, parseSeed, presidentialYear, readLocation, timelineUrl, type TimelineLocation } from './presentation';
+import { MidtermResults } from './Midterm';
+import { midtermSummary } from './midtermView';
 import './styles.css';
 
 const views = [
@@ -70,7 +72,12 @@ export function App() {
   const timeline = useMemo(() => simulate(seed, settings), [seed, settings]);
   const adjusted = modifiedDials(dials).length;
   const timelineKey = `${seed}/${corrections.join(',')}/${encodeDials(dials)}/${midterms ? 'midterms' : ''}`;
-  const term = timeline.terms[ELECTIONS.indexOf(year)]!;
+  // A midterm year shows the Congress elected then; everything else follows the presidential election before it.
+  const electionYear = presidentialYear(year);
+  const isMidterm = year !== electionYear;
+  const years = electionYears(midterms);
+  const term = timeline.terms[ELECTIONS.indexOf(electionYear)]!;
+  const midterm = midtermSummary(term, timeline.terms[term.index + 1]);
   const people = useMemo(() => {
     const list = presidencies(timeline.terms, timeline.finalPresident);
     return { list, parties: partyProfiles(timeline.terms, list, PARTIES.length) };
@@ -271,21 +278,25 @@ export function App() {
 
       {view === 'election' && <>
         <div className="section-heading election-heading">
-          <h2>The <span>{year}</span> election</h2>
-          <YearPicker year={year} chooseYear={chooseYear} />
+          <h2>The <span>{year}</span> {isMidterm ? 'midterm' : 'election'}</h2>
+          <YearPicker year={year} years={years} chooseYear={chooseYear} />
         </div>
-        <Playback year={year} playing={playing} setPlaying={setPlaying} chooseYear={chooseYear} advance={advance} />
-        <div className="election-layout">
-          <ElectionRail terms={timeline.terms} year={year} chooseYear={chooseYear} openHistory={() => openHistoryTab('elections')} />
-          <ElectionMap key={`${timelineKey}/${year}`} term={term} caption={caption} selected={selectedState} select={setSelectedState} />
-          {selectedState !== null && <StatePanel terms={timeline.terms} state={selectedState} year={year}
-            chooseYear={chooseYear} close={() => setSelectedState(null)} />}
-          <ElectionResults term={term} winnerIdeology={timeline.terms[term.index + 1]?.potusIdeology ?? timeline.finalPresident.ideology}
-            winnerBegan={timeline.terms[term.index + 1]?.termBegan ?? timeline.finalPresident.termBegan} />
+        <Playback year={year} years={years} playing={playing} setPlaying={setPlaying} chooseYear={chooseYear} advance={advance} />
+        <div className="election-layout" data-midterm={isMidterm || undefined}>
+          <ElectionRail terms={timeline.terms} year={year} chooseYear={chooseYear} midterms={midterms} openHistory={() => openHistoryTab('elections')} />
+          {isMidterm && midterm
+            ? <MidtermResults summary={midterm} began={timeline.terms[term.index + 1]!.termBegan} openElection={chooseYear} />
+            : <>
+              <ElectionMap key={`${timelineKey}/${year}`} term={term} caption={caption} selected={selectedState} select={setSelectedState} />
+              {selectedState !== null && <StatePanel terms={timeline.terms} state={selectedState} year={electionYear}
+                chooseYear={chooseYear} close={() => setSelectedState(null)} />}
+              <ElectionResults term={term} winnerIdeology={timeline.terms[term.index + 1]?.potusIdeology ?? timeline.finalPresident.ideology}
+                winnerBegan={timeline.terms[term.index + 1]?.termBegan ?? timeline.finalPresident.termBegan} />
+            </>}
         </div>
         <Overview timeline={timeline} openElection={openElection} />
         <Congress term={term} court={timeline.terms[term.index + 1]?.court} caption={caption}
-          midterms={midterms} midterm={timeline.terms[term.index + 1]?.midterm} />
+          midterms={midterms} midterm={timeline.terms[term.index + 1]?.midterm} showMidterm={isMidterm} openYear={chooseYear} />
         <TermDetails timeline={timeline} term={term} />
       </>}
       {view === 'history' && <>
@@ -293,26 +304,26 @@ export function App() {
           {historyTabs.map((tab) => <button key={tab.id} type="button" aria-pressed={historyTab === tab.id}
             onClick={() => { setHistoryTab(tab.id); setFocusPresident(null); }}>{tab.label}</button>)}
         </div>
-        {historyTab === 'elections' && <History terms={timeline.terms} final={timeline.finalPresident} year={year} chooseYear={openElection} />}
+        {historyTab === 'elections' && <History terms={timeline.terms} final={timeline.finalPresident} year={year} chooseYear={openElection} midterms={midterms} />}
         {historyTab === 'presidents' && <Presidents list={people.list} focus={focusPresident} openElection={openElection} />}
         {historyTab === 'parties' && <Parties profiles={people.parties} list={people.list} focus={focusParty} setFocus={setFocusParty}
           openPresident={(n) => { setFocusPresident(n); setHistoryTab('presidents'); window.scrollTo(0, 0); }} openElection={openElection} />}
         {historyTab === 'story' && <StoryPage timeline={timeline}
           rules={`the ${PRESET_LABELS[timeline.preset]} rules${midterms ? ' with midterm elections' : ''}${adjusted ? `${midterms ? ' and' : ' with'} ${adjusted} ${adjusted === 1 ? 'dial' : 'dials'} adjusted` : ''}`} />}
       </>}
-      {view === 'charts' && <Charts terms={timeline.terms} year={year} chooseYear={chooseYear} />}
+      {view === 'charts' && <Charts terms={timeline.terms} year={electionYear} chooseYear={chooseYear} />}
       <div hidden={view !== 'statistics'}>
         <Statistics key={timelineKey} seed={seed} settings={settings} preset={timeline.preset} />
       </div>
       {/* Kept mounted so a search carries on while another page is open. */}
       <div hidden={view !== 'finder'}>
-        <Finder settings={settings} preset={timeline.preset} year={year} openTimeline={openFound} />
+        <Finder settings={settings} preset={timeline.preset} year={electionYear} openTimeline={openFound} />
       </div>
     </main>
     </ProfileLinksContext.Provider>
     </VoteDisplayContext.Provider>
     {rulesOpen && <RuleSettings corrections={corrections} midterms={midterms} voteDisplay={voteDisplay} apply={(selected, display, withMidterms) => {
-      navigate({ corrections: selected, midterms: withMidterms });
+      navigate({ corrections: selected, midterms: withMidterms, ...(withMidterms ? {} : { year: electionYear }) });
       setVoteDisplay(display);
       storeVoteDisplay(display);
     }}

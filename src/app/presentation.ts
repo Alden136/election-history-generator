@@ -15,12 +15,21 @@ export function parseSeed(value: string): number | null {
   return Number.isSafeInteger(seed) && seed <= MAX_SEED ? seed : null;
 }
 
+/** Midterm years: two years after every presidential election but the last (1794 to 2062). */
+export const MIDTERM_YEARS: readonly number[] = ELECTIONS.slice(0, -1).map((election) => election + 2);
+export const isMidtermYear = (year: number) => MIDTERM_YEARS.includes(year);
+const ALL_YEARS: readonly number[] = [...ELECTIONS, ...MIDTERM_YEARS].sort((a, b) => a - b);
+/** Every election year in order: the presidential ones, plus the midterms when they are on. */
+export const electionYears = (midterms: boolean): readonly number[] => (midterms ? ALL_YEARS : ELECTIONS);
+/** The presidential election a year belongs to: itself, or the one two years before a midterm. */
+export const presidentialYear = (year: number) => (isMidtermYear(year) ? year - 2 : year);
+
 export interface TimelineLocation {
   seed: number;
   year: number;
   corrections: readonly Rule[];
   dials: Dials;
-  /** Midterm elections, an addition that is off unless the link says midterms=1. */
+  /** Midterm elections, an addition that is on unless the link says midterms=0. */
   midterms: boolean;
 }
 
@@ -31,12 +40,14 @@ export function readLocation(search: string): TimelineLocation {
   // No rules in the address means the default, Corrected; Faithful is written as rules=none.
   const rules = params.get('rules');
   const selected = new Set(rules === null ? RULES : rules.split(','));
+  const midterms = params.get('midterms') !== '0';
   return {
     seed: seed ?? DEFAULT_SEED,
-    year: ELECTIONS.includes(year) ? year : DEFAULT_YEAR,
+    // A midterm year opens that midterm when midterms are on, or the election before it when they are off.
+    year: ELECTIONS.includes(year) || (midterms && isMidtermYear(year)) ? year : isMidtermYear(year) ? year - 2 : DEFAULT_YEAR,
     corrections: RULES.filter((rule) => selected.has(rule)),
     dials: parseDials(params.get('dials')),
-    midterms: params.get('midterms') === '1',
+    midterms,
   };
 }
 
@@ -50,8 +61,9 @@ export function timelineUrl(href: string, { seed, year, corrections, dials, midt
   const adjusted = encodeDials(dials);
   if (adjusted) url.searchParams.set('dials', adjusted);
   else url.searchParams.delete('dials');
-  if (midterms) url.searchParams.set('midterms', '1');
-  else url.searchParams.delete('midterms');
+  // On is the default, so only "off" is written into the link.
+  if (midterms) url.searchParams.delete('midterms');
+  else url.searchParams.set('midterms', '0');
   return url;
 }
 

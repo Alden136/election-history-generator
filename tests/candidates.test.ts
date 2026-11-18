@@ -3,7 +3,7 @@ import { CANDIDATE_HOMES, CANDIDATES, DEFAULT_DIALS, STATES } from '../src/engin
 import { supportWithNominees, traitsFor } from '../src/engine/candidates';
 import { RULES } from '../src/engine/rules';
 import { CORRECTED_SETTINGS, DEFAULT_SETTINGS, simulate } from '../src/engine/simulate';
-import { readLocation, timelineUrl } from '../src/app/presentation';
+import { readLocation, timelineUrl, traitEffects } from '../src/app/presentation';
 
 const ON = { ...CORRECTED_SETTINGS, midterms: true, candidateTraits: true };
 
@@ -97,5 +97,17 @@ describe('candidate traits', () => {
     expect(off.searchParams.get('traits')).toBe('0');
     expect(readLocation(off.search).traits).toBe(false);
     expect(timelineUrl(off.href, { ...base, traits: true }).searchParams.has('traits')).toBe(false);
+  });
+
+  it('explain what each trait does, for the pop-ups on the trait tags', () => {
+    const wooden = traitEffects({ party: 1, name: 'A', home: 'OH', charisma: -2, experience: 2, incumbent: true });
+    expect(wooden.map((t) => t.label)).toEqual(['From Ohio', 'Wooden', 'Veteran', 'Incumbent']);
+    expect(wooden[0]!.effect).toBe('Home state. Ohio leans 2 points toward their party.');
+    expect(wooden[1]!.effect).toContain('Lowers their party\x27s national support by 5%');
+    expect(wooden[2]!.effect).toContain('Raises their party\x27s national support by 3%');
+    expect(wooden[3]!.effect).toContain('by 4%');
+    const steady = traitEffects({ party: 1, name: 'B', home: null, charisma: 0, experience: 0, incumbent: false });
+    expect(steady.map((t) => t.label)).toEqual(['Steady', 'Newcomer']);
+    expect(steady.every((t) => t.effect.includes('No effect on support'))).toBe(true);
   });
 });

@@ -2,6 +2,7 @@ import { ELECTIONS, PARTIES, STATES } from '../engine/data';
 import turnout from '../../data/turnout.json';
 import { RULES, type Rule } from '../engine/rules';
 import type { Dials, Term } from '../engine/types';
+import { CHARISMA_STEP, EXPERIENCE_STEP, HOME_STATE_BONUS, INCUMBENT_EDGE, type Nominee } from '../engine/candidates';
 import { encodeDials, parseDials } from './dials';
 
 export const DEFAULT_SEED = 42;
@@ -169,3 +170,30 @@ export function additionsText(midterms: boolean, traits: boolean): string {
 /** Candidate traits in words. */
 export const CHARISMA_LABELS: Record<number, string> = { [-2]: 'Wooden', [-1]: 'Stiff', 0: 'Steady', 1: 'Likable', 2: 'Magnetic' };
 export const EXPERIENCE_LABELS = ['Newcomer', 'Seasoned', 'Veteran'] as const;
+
+/** "Raises their party's national support by 5%." for a multiplier of 1.05; the change is relative to the party's own support. */
+const supportEffect = (fraction: number) => fraction === 0 ? 'No effect on support.'
+  : `${fraction > 0 ? 'Raises' : 'Lowers'} their party's national support by ${Math.round(Math.abs(fraction) * 1000) / 10}%.`;
+
+/**
+ * Each of a nominee's traits with the effect it has on the vote, for the
+ * pop-ups on the trait tags. Appeal effects scale the party's own national
+ * support before every party is rescaled to the same total.
+ */
+export function traitEffects(nominee: Nominee): { label: string; effect: string }[] {
+  const traits: { label: string; effect: string }[] = [];
+  if (nominee.home) {
+    const state = STATES.find((s) => s.code === nominee.home)?.name ?? nominee.home;
+    traits.push({ label: `From ${state}`, effect: `Home state. ${state} leans ${HOME_STATE_BONUS} points toward their party.` });
+  }
+  // Appeal effects are relative to the party's own support; every party is then rescaled to the same total.
+  const charisma = CHARISMA_STEP * nominee.charisma;
+  traits.push({ label: CHARISMA_LABELS[nominee.charisma]!, effect: `Charisma ${nominee.charisma > 0 ? '+' : ''}${nominee.charisma} of ±2. `
+    + supportEffect(charisma) });
+  const experience = EXPERIENCE_STEP * nominee.experience;
+  traits.push({ label: EXPERIENCE_LABELS[nominee.experience]!, effect: `Experience ${nominee.experience} of 2. `
+    + supportEffect(experience)
+    + (nominee.incumbent ? ' A sitting president always counts as a veteran.' : '') });
+  if (nominee.incumbent) traits.push({ label: 'Incumbent', effect: `The sitting president is running again. ${supportEffect(INCUMBENT_EDGE)}` });
+  return traits;
+}

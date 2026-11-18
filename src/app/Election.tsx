@@ -10,7 +10,7 @@ import { geoBody, savePicture, tileBody, type Caption, type LegendItem, type Map
 import { PartyLink, PresidentLink } from './People';
 import { SaveImageButton } from './SaveImageButton';
 import { useVoteDisplay, type VoteDisplay } from './voteDisplay';
-import { CHARISMA_LABELS, EXPERIENCE_LABELS, approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
+import { CHARISMA_LABELS, EXPERIENCE_LABELS, traitEffects, approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
 
 type MapStyle = 'map' | 'tiles';
@@ -260,10 +260,11 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
       </div>
       <h3><PresidentLink name={term.winnerName} began={winnerBegan} /></h3>
       <p className="winner-ideology">{ideologyLabel(winnerIdeology)} <span>{signed(winnerIdeology)}</span></p>
+      {/* Each tag shows a pop-up with the trait's effect on hover, or on focus for keyboards and touch. */}
       {winnerNominee && <p className="winner-traits" aria-label="Candidate traits">
-        {[winnerNominee.home ? `From ${stateName(winnerNominee.home)}` : null, CHARISMA_LABELS[winnerNominee.charisma],
-          EXPERIENCE_LABELS[winnerNominee.experience], winnerNominee.incumbent ? 'Incumbent' : null]
-          .filter(Boolean).map((trait) => <span key={trait}>{trait}</span>)}
+        {traitEffects(winnerNominee).map(({ label, effect }, i) => <span key={label} className="trait" tabIndex={0}
+          aria-describedby={`trait-effect-${i}`}>{label}<span className="trait-effect" role="tooltip" id={`trait-effect-${i}`}>
+            <strong>{label}</strong>{effect}</span></span>)}
       </p>}
       <dl className="winner-stats">
         <div><dt>Electoral votes</dt><dd>{live > 0

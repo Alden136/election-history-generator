@@ -816,6 +816,13 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 }
 
 /* Candidate traits */
-.winner-traits { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 0; }
-.winner-traits span { padding: 1px 6px; border: 1px solid var(--line); background: var(--raised); font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.winner-traits { position: relative; display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 0; }
+.winner-traits .trait { padding: 1px 6px; border: 1px solid var(--line); background: var(--raised); font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; cursor: help; }
+.winner-traits .trait:hover, .winner-traits .trait:focus-visible { background: var(--line); color: var(--raised); outline: none; }
+/* The pop-up spans the whole row of tags, so it stays inside the panel whichever tag it belongs to. */
+.trait-effect { position: absolute; z-index: 5; top: calc(100% + 6px); left: 0; right: 0; padding: 8px 10px; background: var(--line); color: var(--raised);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .25); font: 500 12px/1.4 var(--sans); text-transform: none; letter-spacing: 0; opacity: 0; visibility: hidden; transition: opacity .12s; pointer-events: none; }
+.trait-effect strong { display: block; margin-bottom: 2px; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.trait:hover .trait-effect, .trait:focus .trait-effect { opacity: 1; visibility: visible; }
+@media (prefers-reduced-motion: reduce) { .trait-effect { transition: none; } }
 .results-table th .nominee { display: block; margin-top: 2px; color: var(--muted); font: 500 10px var(--sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }

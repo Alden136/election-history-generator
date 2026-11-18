@@ -20,6 +20,8 @@ export interface TimelineLocation {
   year: number;
   corrections: readonly Rule[];
   dials: Dials;
+  /** Midterm elections, an addition that is off unless the link says midterms=1. */
+  midterms: boolean;
 }
 
 export function readLocation(search: string): TimelineLocation {
@@ -34,10 +36,11 @@ export function readLocation(search: string): TimelineLocation {
     year: ELECTIONS.includes(year) ? year : DEFAULT_YEAR,
     corrections: RULES.filter((rule) => selected.has(rule)),
     dials: parseDials(params.get('dials')),
+    midterms: params.get('midterms') === '1',
   };
 }
 
-export function timelineUrl(href: string, { seed, year, corrections, dials }: TimelineLocation): URL {
+export function timelineUrl(href: string, { seed, year, corrections, dials, midterms }: TimelineLocation): URL {
   const url = new URL(href);
   url.searchParams.set('seed', String(seed));
   url.searchParams.set('year', String(year));
@@ -47,6 +50,8 @@ export function timelineUrl(href: string, { seed, year, corrections, dials }: Ti
   const adjusted = encodeDials(dials);
   if (adjusted) url.searchParams.set('dials', adjusted);
   else url.searchParams.delete('dials');
+  if (midterms) url.searchParams.set('midterms', '1');
+  else url.searchParams.delete('midterms');
   return url;
 }
 

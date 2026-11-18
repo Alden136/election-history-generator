@@ -15,6 +15,7 @@
  *   and a party with no seats in the simulated Congress has none in either.
  */
 import { PARTY_COUNT, P, STATES } from '../engine/data';
+import type { MidtermCongress } from '../engine/congress';
 import { SECEDED, type Term } from '../engine/types';
 
 export interface Chamber {
@@ -104,4 +105,19 @@ export function chambers(term: Term): Chambers {
     house: chamber(apportion(houseShares, houseSize)),
     senate: chamber(apportion(senateShares, senateSize)),
   };
+}
+
+/**
+ * The House and Senate after a midterm: the same seats as the Congress elected
+ * two years before, split by the midterm vote. 1792 records no electoral
+ * votes, so the 1794 midterm keeps the founding chamber sizes.
+ */
+export function midtermChambers(term: Term, midterm: MidtermCongress): Chambers {
+  if (term.index === 0) {
+    return {
+      house: chamber(apportion(midterm.shares, FOUNDING.house.size)),
+      senate: chamber(apportion(midterm.shares, FOUNDING.senate.size)),
+    };
+  }
+  return chambers({ ...term, congress: midterm.shares, support: midterm.support });
 }

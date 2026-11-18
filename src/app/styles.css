@@ -788,3 +788,7 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
   .story-contents li { flex: none; border-right: 1px solid var(--hair); }
 }
 @media (max-width: 560px) { .story-text { padding: 16px 14px 20px; font-size: 14px; } }
+
+/* Congress: elected or midterm, when midterms are on */
+.congress-view { display: inline-flex; margin-left: auto; }
+.congress-view button:disabled { color: var(--muted); cursor: not-allowed; text-decoration: line-through; }

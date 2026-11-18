@@ -1,3 +1,4 @@
+import type { MidtermCongress } from './congress';
 import type { Rule } from './rules';
 import type { Rng } from './rng';
 
@@ -14,6 +15,8 @@ export interface Dials {
 export interface Settings {
   dials: Dials;
   corrections?: readonly Rule[];
+  /** Midterm elections: an addition the spreadsheet does not have, off unless true. */
+  midterms?: boolean;
 }
 
 /** Who carried a state: a party index (0-14), or one of the two special values. */
@@ -114,6 +117,9 @@ export interface Term {
   leanAverage: number;
   leanShift: number;
 
+  /** The Congress elected two years into this term, when midterms are on; null otherwise and for the founding term. */
+  midterm: MidtermCongress | null;
+
   // Supreme Court: 15 seats, null when empty.
   court: (number | null)[];
   courtAverage: number;
@@ -125,4 +131,5 @@ export interface Context {
   rng: Rng;
   dials: Dials;
   corrections?: ReadonlySet<Rule>;
+  midterms?: boolean;
 }

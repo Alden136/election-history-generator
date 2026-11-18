@@ -42,7 +42,7 @@ type HistoryTab = typeof historyTabs[number]['id'];
 
 export function App() {
   const [location, setLocation] = useState(() => readLocation(window.location.search));
-  const { seed, year, corrections, dials } = location;
+  const { seed, year, corrections, dials, midterms } = location;
   const [playing, setPlaying] = useState(false);
   const [dialsOpen, setDialsOpen] = useState(false);
   const dialsButton = useRef<HTMLButtonElement>(null);
@@ -66,10 +66,10 @@ export function App() {
   const shareTimer = useRef<number | undefined>(undefined);
   const shareRequest = useRef(0);
   const main = useRef<HTMLElement>(null);
-  const settings = useMemo(() => ({ dials, corrections }), [dials, corrections]);
+  const settings = useMemo(() => ({ dials, corrections, midterms }), [dials, corrections, midterms]);
   const timeline = useMemo(() => simulate(seed, settings), [seed, settings]);
   const adjusted = modifiedDials(dials).length;
-  const timelineKey = `${seed}/${corrections.join(',')}/${encodeDials(dials)}`;
+  const timelineKey = `${seed}/${corrections.join(',')}/${encodeDials(dials)}/${midterms ? 'midterms' : ''}`;
   const term = timeline.terms[ELECTIONS.indexOf(year)]!;
   const people = useMemo(() => {
     const list = presidencies(timeline.terms, timeline.finalPresident);
@@ -77,7 +77,7 @@ export function App() {
   }, [timeline]);
   const shareUrl = timelineUrl(window.location.href, location).href;
   const caption = { seed, url: shareUrl,
-    rules: `${PRESET_LABELS[timeline.preset]} rules${adjusted ? ` · ${adjusted} ${adjusted === 1 ? 'dial' : 'dials'} adjusted` : ''}` };
+    rules: `${PRESET_LABELS[timeline.preset]} rules${midterms ? ' · midterms' : ''}${adjusted ? ` · ${adjusted} ${adjusted === 1 ? 'dial' : 'dials'} adjusted` : ''}` };
 
   useEffect(() => {
     const update = () => {
@@ -245,7 +245,7 @@ export function App() {
           <div className="timeline-tools">
             <button ref={rulesButton} className="rules-button" type="button" aria-haspopup="dialog"
               onClick={() => { setPlaying(false); setRulesOpen(true); }}>
-              <Icon name="rules" size={15} /><span>Rules</span><strong>{PRESET_LABELS[timeline.preset]}</strong><Icon name="down" size={12} />
+              <Icon name="rules" size={15} /><span>Rules</span><strong>{PRESET_LABELS[timeline.preset]}</strong>{midterms && <strong>Midterms</strong>}<Icon name="down" size={12} />
             </button>
             <button ref={dialsButton} className="rules-button" type="button" aria-haspopup="dialog"
               onClick={() => { setPlaying(false); setDialsOpen(true); }}>
@@ -284,7 +284,8 @@ export function App() {
             winnerBegan={timeline.terms[term.index + 1]?.termBegan ?? timeline.finalPresident.termBegan} />
         </div>
         <Overview timeline={timeline} openElection={openElection} />
-        <Congress term={term} court={timeline.terms[term.index + 1]?.court} caption={caption} />
+        <Congress term={term} court={timeline.terms[term.index + 1]?.court} caption={caption}
+          midterms={midterms} midterm={timeline.terms[term.index + 1]?.midterm} />
         <TermDetails timeline={timeline} term={term} />
       </>}
       {view === 'history' && <>
@@ -297,7 +298,7 @@ export function App() {
         {historyTab === 'parties' && <Parties profiles={people.parties} list={people.list} focus={focusParty} setFocus={setFocusParty}
           openPresident={(n) => { setFocusPresident(n); setHistoryTab('presidents'); window.scrollTo(0, 0); }} openElection={openElection} />}
         {historyTab === 'story' && <StoryPage timeline={timeline}
-          rules={`the ${PRESET_LABELS[timeline.preset]} rules${adjusted ? ` with ${adjusted} ${adjusted === 1 ? 'dial' : 'dials'} adjusted` : ''}`} />}
+          rules={`the ${PRESET_LABELS[timeline.preset]} rules${midterms ? ' with midterm elections' : ''}${adjusted ? `${midterms ? ' and' : ' with'} ${adjusted} ${adjusted === 1 ? 'dial' : 'dials'} adjusted` : ''}`} />}
       </>}
       {view === 'charts' && <Charts terms={timeline.terms} year={year} chooseYear={chooseYear} />}
       <div hidden={view !== 'statistics'}>
@@ -310,8 +311,8 @@ export function App() {
     </main>
     </ProfileLinksContext.Provider>
     </VoteDisplayContext.Provider>
-    {rulesOpen && <RuleSettings corrections={corrections} voteDisplay={voteDisplay} apply={(selected, display) => {
-      navigate({ corrections: selected });
+    {rulesOpen && <RuleSettings corrections={corrections} midterms={midterms} voteDisplay={voteDisplay} apply={(selected, display, withMidterms) => {
+      navigate({ corrections: selected, midterms: withMidterms });
       setVoteDisplay(display);
       storeVoteDisplay(display);
     }}

@@ -2,7 +2,9 @@ import type { CSSProperties } from 'react';
 import { partyName } from '../engine/data';
 import type { Term } from '../engine/types';
 import { ideologyLabel } from '../engine/util';
-import { chambers, type Chamber } from './chambers';
+import { useState } from 'react';
+import type { MidtermCongress } from '../engine/congress';
+import { chambers, midtermChambers, type Chamber } from './chambers';
 import { bench, COLOR_LIMIT, ideologyColor } from './court';
 import { pictureWinner } from './Election';
 import { chamberBody, savePicture, type Caption } from './imageExport';
@@ -153,30 +155,54 @@ function CourtPanel({ court, sitting }: { court: readonly (number | null)[] | un
   </section>;
 }
 
-export function Congress({ term, court, caption }: { term: Term; court: readonly (number | null)[] | undefined; caption: Caption }) {
-  const { house, senate } = chambers(term);
+export function Congress({ term, court, caption, midterms, midterm }: {
+  term: Term;
+  court: readonly (number | null)[] | undefined;
+  caption: Caption;
+  /** True when midterm elections are switched on. */
+  midterms: boolean;
+  /** The midterm held two years after this election; undefined after 2064, which is not simulated. */
+  midterm: MidtermCongress | null | undefined;
+}) {
+  // Which Congress the charts show; the choice stays as the year changes.
+  const [view, setView] = useState<'elected' | 'midterm'>('elected');
+  const showMidterm = midterms && view === 'midterm' && Boolean(midterm);
+  const { house, senate } = showMidterm ? midtermChambers(term, midterm!) : chambers(term);
+  const midtermYear = term.election + 2;
   const voteDisplay = useVoteDisplay();
   // Seat parties from left-wing to right-wing, as in a real chamber.
   const order = term.shownIdeology.map((ideology, party) => ({ ideology, party }))
     .sort((a, b) => a.ideology - b.ideology || a.party - b.party).map(({ party }) => party);
-  // The simulation elects Congress only with each presidential election, so it sits four years.
+  // Without midterms Congress is elected only with each president, so it sits four years.
+  // With them, the midterm Congress takes over halfway through.
   const sitting = term.index === 0 ? '1789–1793' : `${term.election + 1}–${term.election + 5}`;
+  const electedSits = term.index === 0 ? '1789–1793' : midterms ? `${term.election + 1}–${term.election + 3}` : sitting;
+  const midtermSits = `${midtermYear + 1}–${midtermYear + 3}`;
+  const heading = showMidterm ? `Midterm ${midtermYear} · sits ${midtermSits}`
+    : term.index === 0 ? `Founding Congress · sits ${electedSits}` : `Elected ${term.election} · sits ${electedSits}`;
 
   const saveChamber = (name: 'House' | 'Senate', chamber: Chamber,
     { seats, needed, parties }: { seats: ReturnType<typeof seatLayout>; needed: number; parties: number[] }) =>
     savePicture({
-      kicker: `${name === 'House' ? 'House of Representatives' : 'Senate'} · ${term.index === 0 ? 'founding Congress' : `elected ${term.election}`} · sits ${sitting} · ${needed} of ${chamber.size} for a majority`,
-      year: term.election, titleBefore: 'The ', titleAfter: ` ${name}`,
+      kicker: `${name === 'House' ? 'House of Representatives' : 'Senate'} · ${heading.toLowerCase()} · ${needed} of ${chamber.size} for a majority`,
+      year: showMidterm ? midtermYear : term.election, titleBefore: 'The ', titleAfter: ` ${name}`,
       winnerLabel: 'President elected', winner: pictureWinner(term, voteDisplay),
       body: chamberBody({ ...seats, total: chamber.size, needed, majority: chamber.majority,
         parties: parties.map((party) => ({ party, seats: chamber.seats[party]! })) }),
       legend: [], caption,
-    }, `${name.toLowerCase()}-${term.election}-seed-${caption.seed}.png`);
+    }, `${name.toLowerCase()}-${showMidterm ? `${midtermYear}-midterm` : term.election}-seed-${caption.seed}.png`);
 
   return <section className="congress" aria-labelledby="congress-title">
     <div className="section-heading">
       <h2 id="congress-title">Congress and the Court</h2>
-      <span className="eyebrow">{term.index === 0 ? `Founding Congress · sits ${sitting}` : `Elected ${term.election} · sits ${sitting}`}</span>
+      {midterms && <div className="segmented congress-view" role="group" aria-label="Which Congress">
+        <button type="button" aria-pressed={!showMidterm} onClick={() => setView('elected')}>
+          {term.index === 0 ? 'Founding' : `Elected ${term.election}`}</button>
+        <button type="button" aria-pressed={showMidterm} disabled={!midterm}
+          title={midterm ? undefined : 'The simulation ends after 2064, so this midterm is not simulated'}
+          onClick={() => setView('midterm')}>Midterm {midtermYear}</button>
+      </div>}
+      <span className="eyebrow">{heading}</span>
     </div>
     <div className="chambers">
       <ChamberPanel title="House of Representatives" chamber={house} order={order} save={(layout) => saveChamber('House', house, layout)} />

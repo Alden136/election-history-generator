@@ -68,15 +68,17 @@ const descriptions: Record<Rule, { title: string; detail: string }> = {
   },
 };
 
-export function RuleSettings({ corrections, voteDisplay, apply, dismiss }: {
+export function RuleSettings({ corrections, midterms, voteDisplay, apply, dismiss }: {
   corrections: readonly Rule[];
+  midterms: boolean;
   voteDisplay: VoteDisplay;
-  apply: (rules: readonly Rule[], voteDisplay: VoteDisplay) => void;
+  apply: (rules: readonly Rule[], voteDisplay: VoteDisplay, midterms: boolean) => void;
   dismiss: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [draft, setDraft] = useState<readonly Rule[]>(corrections);
   const [display, setDisplay] = useState<VoteDisplay>(voteDisplay);
+  const [withMidterms, setWithMidterms] = useState(midterms);
   const preset = rulePreset(draft);
 
   useEffect(() => {
@@ -91,7 +93,7 @@ export function RuleSettings({ corrections, voteDisplay, apply, dismiss }: {
     <dialog className="rule-dialog" ref={dialog} aria-labelledby="rules-title" onClose={dismiss}>
       <form onSubmit={(event) => {
         event.preventDefault();
-        apply(RULES.filter((rule) => draft.includes(rule)), display);
+        apply(RULES.filter((rule) => draft.includes(rule)), display, withMidterms);
         dialog.current?.close();
       }}>
         <header className="rule-heading">
@@ -117,6 +119,17 @@ export function RuleSettings({ corrections, voteDisplay, apply, dismiss }: {
               <input type="checkbox" role="switch" checked={draft.includes(rule)} onChange={() => toggle(rule)}
                 aria-label={descriptions[rule].title} aria-describedby={`rule-${rule}`} />
             </label>)}
+          </fieldset>
+          <fieldset className="rule-list">
+            <legend className="rule-section">Additions</legend>
+            <label className="rule-row">
+              <span><strong>Midterm elections</strong><small id="rule-midterms">Elect Congress again two years into each term,
+                starting in 1794. The president's party usually loses ground, more so when the term is going badly. The new
+                Congress shapes approval, the Supreme Court and deadlocked elections, so this gives a different history for the
+                same seed. The spreadsheet has no midterms, so this is off by default and not part of either preset.</small></span>
+              <input type="checkbox" role="switch" checked={withMidterms} onChange={(event) => setWithMidterms(event.target.checked)}
+                aria-label="Midterm elections" aria-describedby="rule-midterms" />
+            </label>
           </fieldset>
           <fieldset className="rule-list">
             <legend className="rule-section">Display</legend>

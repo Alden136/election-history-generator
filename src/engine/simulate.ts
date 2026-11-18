@@ -4,7 +4,7 @@
  * Each term is computed from the terms before it, in the order the sheet's
  * formulas depend on each other. The same seed always gives the same result.
  */
-import { electCongress, electPresident } from './congress';
+import { electCongress, electMidterm, electPresident } from './congress';
 import { courtAverage, updateCourt } from './court';
 import {
   DEFAULT_DIALS,
@@ -55,6 +55,8 @@ export interface Timeline {
   seed: number;
   preset: Preset;
   corrections: readonly Rule[];
+  /** True when midterm elections were simulated. */
+  midterms: boolean;
   /** One entry per election, 1792 first. */
   terms: Term[];
   /** The president inaugurated in 2065, after the last election. */
@@ -141,6 +143,8 @@ function firstTerm(ctx: Context): Term {
     center: electorateCenter(shares),
     leanAverage: 0,
     leanShift: 0,
+    // The founding Congress sits through the first term; midterms begin in 1794.
+    midterm: null,
     court: [...START_COURT],
     courtAverage: courtAverage(START_COURT),
     grid: initialGrid(),
@@ -180,8 +184,17 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   const label = descriptor(perf, potusIdeology, potusParty, prev, ctx);
   const stable = stability(perf, potusIdeology, expanded, history);
 
+  // With midterms on, a new Congress is elected two years in and sits for the
+  // rest of the term: it shapes election-day approval and the court, decides a
+  // deadlocked election and carries into the next Congress. With them off, no
+  // random numbers are drawn here, so every timeline is unchanged.
+  const midterm = ctx.midterms ? electMidterm(prev, potusParty, dayOne, perf, election - 2, ctx) : null;
+  const sitting = midterm
+    ? { congress: midterm.shares, congressRaw: midterm.raw, congressIdeology: midterm.ideology, closeness: midterm.closeness, shownIdeology: prev.shownIdeology }
+    : prev;
+
   // Congress as it sat during the term, and the court.
-  const congressIdeologyBefore = prev.congressIdeology;
+  const congressIdeologyBefore = sitting.congressIdeology;
   const court = updateCourt(prev.court, potusIdeology, congressIdeologyBefore, ctx);
   const electionDay = electionDayApproval(
     dayOne, perf, label, potusIdeology, congressIdeologyBefore, potusParty, prev, ctx,
@@ -212,8 +225,8 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   const leanAvg = leanAverage(grid);
 
   // Congress, then the presidency.
-  const congress = electCongress(prev, label, support, shownIdeology, grid, ctx);
-  const winnerParty = electPresident(electoral, prev, ctx.corrections);
+  const congress = electCongress(sitting, label, support, shownIdeology, grid, ctx);
+  const winnerParty = electPresident(electoral, sitting, ctx.corrections);
   const result = potusParty === winnerParty ? 'WIN' : 'LOSS';
   const nextIdeology = winnerParty === P.THIRD ? center : ideology[winnerParty]!;
   const winner = winnerName(
@@ -253,6 +266,7 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
     congressIdeology: congress.ideology,
     congressLeader: congress.leader,
     closeness: congress.closeness,
+    midterm,
     strength,
     strengthThird,
     strengthLeader: argMax([...strength, strengthThird]),
@@ -273,7 +287,8 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
 
 export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): Timeline {
   const corrections = RULES.filter((rule) => settings.corrections?.includes(rule));
-  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections) };
+  const midterms = settings.midterms === true;
+  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms };
 
   const terms: Term[] = [firstTerm(ctx)];
   while (terms.length < ELECTIONS.length) terms.push(nextTerm(terms, ctx));
@@ -309,6 +324,7 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
     seed,
     preset: rulePreset(corrections),
     corrections,
+    midterms,
     terms,
     finalPresident,
     finalExpansions,

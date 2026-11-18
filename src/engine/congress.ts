@@ -95,3 +95,60 @@ export function electPresident(
   }
   return argMax(eligible);
 }
+
+export interface MidtermCongress extends CongressResult {
+  /** The year of the midterm election. */
+  election: number;
+  /** National support behind the vote: the last election's, swung for or against the president's party. */
+  support: number[];
+  /** How far the president's party's support was scaled: below 1 is a loss. */
+  swing: number;
+}
+
+/** Scales one party's share by `factor` and spreads the difference over the rest, keeping the total. */
+function swingShares(shares: readonly number[], party: number, factor: number): number[] {
+  const total = sum(shares);
+  const others = total - shares[party]!;
+  if (total <= 0 || others <= 0) return [...shares];
+  const target = Math.min(total, shares[party]! * factor);
+  const scaleOthers = (total - target) / others;
+  return shares.map((share, p) => (p === party ? target : share * scaleOthers));
+}
+
+/**
+ * Midterm elections, an addition the spreadsheet does not have (off by
+ * default). Two years into a term the whole Congress is elected again. There
+ * is no state-by-state vote at a midterm, so, like a normal Congress, it
+ * blends the sitting Congress with national support and the share of states
+ * each party carried at the last election, both swung for or against the
+ * president's party. The swing follows the term so far: day-one approval and
+ * how the term is going, less a steady midterm penalty, as presidents' parties
+ * usually lose ground at midterms.
+ */
+export function electMidterm(
+  prev: Pick<Term, 'congressRaw' | 'congress' | 'shownIdeology' | 'support' | 'grid'>,
+  potusParty: number,
+  dayOneApproval: number,
+  performance: number,
+  election: number,
+  ctx: Context,
+): MidtermCongress {
+  const { rng } = ctx;
+  const mood = Math.max(-0.5, Math.min(0.5, dayOneApproval - 0.5 + performance));
+  const swing = Math.max(0.4, 1 - MIDTERM_PENALTY + mood);
+  const support = swingShares(prev.support, potusParty, swing);
+  const statesWon = Array.from({ length: PARTY_COUNT }, (_, p) => safeDiv(prev.grid.winners.filter((w) => w === p).length, prev.grid.votingStates));
+  const states = swingShares(statesWon, potusParty, swing);
+
+  const raw: number[] = [];
+  for (let p = 0; p < NAMED_PARTY_COUNT; p++) {
+    const fresh = 0.5 * (support[p]! + states[p]!);
+    raw.push(Math.max(0, 0.5 * (prev.congressRaw[p]! + fresh) - rng.next() / 20));
+  }
+  raw.push(Math.max(0, -0.1 + support[P.THIRD]! * 0.8));
+
+  return { ...congressFromRaw(raw, prev, prev.shownIdeology, ctx.corrections), election, support, swing };
+}
+
+/** The steady loss a president's party takes at a midterm before approval is counted. */
+const MIDTERM_PENALTY = 0.3;

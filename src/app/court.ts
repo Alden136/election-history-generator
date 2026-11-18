@@ -1,6 +1,7 @@
 /**
  * The Supreme Court as the bench panel draws it: sitting justices ordered
- * from left-wing to right-wing, with the headline figures.
+ * from left-wing to right-wing, with the headline figures. Unfilled seats are
+ * left out: the number of seats on the court changes with the law.
  * Display only; nothing here feeds back into the simulation.
  */
 
@@ -13,9 +14,6 @@ export interface Justice {
 export interface Bench {
   /** Sitting justices, most left-wing first. */
   justices: Justice[];
-  /** Seats on the court, filled or not. */
-  size: number;
-  empty: number;
   average: number;
   /** The middle justice, or the midpoint of the middle two. */
   median: number;
@@ -31,14 +29,15 @@ export function bench(court: readonly (number | null)[]): Bench {
   const middle = count >> 1;
   return {
     justices,
-    size: court.length,
-    empty: court.length - count,
     average: count ? justices.reduce((total, { ideology }) => total + ideology, 0) / count : 0,
     median: !count ? 0 : count % 2 ? justices[middle]!.ideology : (justices[middle - 1]!.ideology + justices[middle]!.ideology) / 2,
     left: justices.filter(({ ideology }) => ideology < 0).length,
     right: justices.filter(({ ideology }) => ideology > 0).length,
   };
 }
+
+/** "9 justices": the court's size is not shown, since it changes with the law. */
+export const justiceCount = (count: number) => `${count} ${count === 1 ? 'justice' : 'justices'}`;
 
 /** Ideology at which the bench colors stop getting stronger. Most justices fall inside it. */
 export const COLOR_LIMIT = 4;

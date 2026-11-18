@@ -12,6 +12,7 @@ import { SaveImageButton } from './SaveImageButton';
 import { useVoteDisplay, type VoteDisplay } from './voteDisplay';
 import { CHARISMA_LABELS, EXPERIENCE_LABELS, traitEffects, approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
+import { justiceCount } from './court';
 
 type MapStyle = 'map' | 'tiles';
 const MAP_STYLE_KEY = 'election-simulator:map-style';
@@ -334,7 +335,7 @@ export function TermDetails({ timeline, term }: { timeline: Timeline; term: Term
         <small>{next ? `${percent(next.dayOneApproval)} on day one` : 'No election after 2064'}</small></div>
       <div><span className="eyebrow">Supreme Court ideology</span>
         <strong>{next ? signed(next.courtAverage) : '—'}</strong>
-        <small>{next ? `${next.court.filter((seat) => seat !== null).length} of ${next.court.length} seats filled` : 'Not simulated after 2064'}</small></div>
+        <small>{next ? justiceCount(next.court.filter((seat) => seat !== null).length) : 'Not simulated after 2064'}</small></div>
       <div><span className="eyebrow">Territorial expansions</span><strong>{territories.length}</strong>
         <small>{territories.length ? territories.join(', ') : 'None recorded'}</small></div>
     </div>

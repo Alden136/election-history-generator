@@ -4,7 +4,7 @@ import type { Term } from '../engine/types';
 import { ideologyLabel } from '../engine/util';
 import type { MidtermCongress } from '../engine/congress';
 import { chambers, midtermChambers, type Chamber } from './chambers';
-import { bench, COLOR_LIMIT, ideologyColor } from './court';
+import { bench, COLOR_LIMIT, ideologyColor, justiceCount } from './court';
 import { pictureWinner } from './Election';
 import { chamberBody, savePicture, type Caption } from './imageExport';
 import { Icon } from './Icon';
@@ -107,7 +107,8 @@ function ChamberPanel({ title, chamber, order, save }: {
 
 /**
  * The Supreme Court as the winner of this election leaves it: one square per
- * seat, justices from left-wing to right-wing, then the empty seats.
+ * sitting justice, from left-wing to right-wing. Unfilled seats are not shown,
+ * since how many seats the court has depends on the law at the time.
  */
 function CourtPanel({ court, sitting }: { court: readonly (number | null)[] | undefined; sitting: string }) {
   if (!court) {
@@ -116,17 +117,17 @@ function CourtPanel({ court, sitting }: { court: readonly (number | null)[] | un
       <p className="court-note">The simulation ends after 2064, so the court this term leaves behind is not worked out.</p>
     </section>;
   }
-  const { justices, size, empty, average, median, left, right } = bench(court);
+  const { justices, average, median, left, right } = bench(court);
   const lean = left === right ? 'Evenly split' : `Leans ${left > right ? 'left' : 'right'} ${Math.max(left, right)}–${Math.min(left, right)}`;
 
   return <section className="panel court" aria-labelledby="court-title">
     <div className="panel-header">
       <h3 id="court-title">Supreme Court</h3>
-      <span className="panel-count chamber-count"><span>{justices.length} of {size} seats filled</span> <span>End of the {sitting} term</span></span>
+      <span className="panel-count chamber-count"><span>{justiceCount(justices.length)}</span> <span>End of the {sitting} term</span></span>
     </div>
     <div className="court-body">
       <div>
-        <ol className="bench" aria-label="Justices from left-wing to right-wing, then empty seats">
+        <ol className="bench" aria-label="Justices from left-wing to right-wing">
           {justices.map(({ seat, ideology }) => {
             const fill = ideologyColor(ideology);
             const label = `Seat ${seat}: ${ideologyLabel(ideology)}, ${signed(ideology)}`;
@@ -134,8 +135,6 @@ function CourtPanel({ court, sitting }: { court: readonly (number | null)[] | un
               <strong aria-hidden="true">{signed(ideology)}</strong>
             </li>;
           })}
-          {Array.from({ length: empty }, (_, i) => <li key={`empty-${i}`} data-empty title="Empty seat" aria-label="Empty seat">
-            <small aria-hidden="true">Empty</small></li>)}
         </ol>
         <div className="bench-scale" aria-hidden="true">
           <span>Left-wing −{COLOR_LIMIT}</span><i /><span>+{COLOR_LIMIT} Right-wing</span>

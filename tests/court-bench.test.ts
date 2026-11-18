@@ -8,9 +8,9 @@ describe('court bench', () => {
     expect(result.justices).toEqual([
       { seat: 3, ideology: -3 }, { seat: 6, ideology: -1 }, { seat: 4, ideology: 0.5 }, { seat: 1, ideology: 2 },
     ]);
-    expect(result).toMatchObject({ size: 6, empty: 2, average: -0.375, median: -0.25, left: 2, right: 2 });
+    expect(result).toMatchObject({ average: -0.375, median: -0.25, left: 2, right: 2 });
     expect(bench([4, 1, -2]).median).toBe(1);
-    expect(bench([null, null])).toMatchObject({ justices: [], empty: 2, average: 0, median: 0, left: 0, right: 0 });
+    expect(bench([null, null])).toMatchObject({ justices: [], average: 0, median: 0, left: 0, right: 0 });
   });
 
   it('colors left blue, right red and the centre pale', () => {
@@ -26,7 +26,7 @@ describe('court bench', () => {
         for (const term of simulate(seed, settings).terms) {
           const result = bench(term.court);
           expect(result.average).toBeCloseTo(term.courtAverage, 10);
-          expect(result.justices.length + result.empty).toBe(term.court.length);
+          expect(result.justices.length).toBe(term.court.filter((ideology) => ideology !== null).length);
           expect(result.left + result.right).toBeLessThanOrEqual(result.justices.length);
           expect(result.justices.every((justice, i, all) => i === 0 || all[i - 1]!.ideology <= justice.ideology)).toBe(true);
         }

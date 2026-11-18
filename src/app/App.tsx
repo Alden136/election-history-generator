@@ -19,6 +19,7 @@ import { SavedTimelines } from './SavedTimelines';
 import { readVoteDisplay, storeVoteDisplay, VoteDisplayContext } from './voteDisplay';
 import { addSaved, loadSaved, locationOf, removeSaved, SAVED_KEY, writeSaved, type SavedTimeline } from './saved';
 import { Statistics } from './Statistics';
+import { StoryPage } from './StoryPage';
 import { PRESET_LABELS, RuleSettings } from './RuleSettings';
 import { MAX_SEED, parseSeed, readLocation, timelineUrl, type TimelineLocation } from './presentation';
 import './styles.css';
@@ -35,6 +36,7 @@ const historyTabs = [
   { id: 'elections', label: 'Elections' },
   { id: 'presidents', label: 'Presidents' },
   { id: 'parties', label: 'Parties' },
+  { id: 'story', label: 'Story' },
 ] as const;
 type HistoryTab = typeof historyTabs[number]['id'];
 
@@ -294,6 +296,8 @@ export function App() {
         {historyTab === 'presidents' && <Presidents list={people.list} focus={focusPresident} openElection={openElection} />}
         {historyTab === 'parties' && <Parties profiles={people.parties} list={people.list} focus={focusParty} setFocus={setFocusParty}
           openPresident={(n) => { setFocusPresident(n); setHistoryTab('presidents'); window.scrollTo(0, 0); }} openElection={openElection} />}
+        {historyTab === 'story' && <StoryPage timeline={timeline}
+          rules={`the ${PRESET_LABELS[timeline.preset]} rules${adjusted ? ` with ${adjusted} ${adjusted === 1 ? 'dial' : 'dials'} adjusted` : ''}`} />}
       </>}
       {view === 'charts' && <Charts terms={timeline.terms} year={year} chooseYear={chooseYear} />}
       <div hidden={view !== 'statistics'}>

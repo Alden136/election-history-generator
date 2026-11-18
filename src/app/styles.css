@@ -815,3 +815,8 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
   .midterm-body { grid-template-columns: minmax(0, 1fr); }
   .midterm-hero { border-right: 0; border-bottom: 3px solid var(--line); }
 }
+
+/* Candidate traits */
+.winner-traits { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 0; }
+.winner-traits span { padding: 1px 6px; border: 1px solid var(--line); background: var(--raised); font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.results-table th .nominee { display: block; margin-top: 2px; color: var(--muted); font: 500 10px var(--sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }

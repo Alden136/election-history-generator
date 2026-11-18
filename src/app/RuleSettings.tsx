@@ -68,17 +68,19 @@ const descriptions: Record<Rule, { title: string; detail: string }> = {
   },
 };
 
-export function RuleSettings({ corrections, midterms, voteDisplay, apply, dismiss }: {
+export function RuleSettings({ corrections, midterms, traits, voteDisplay, apply, dismiss }: {
   corrections: readonly Rule[];
   midterms: boolean;
+  traits: boolean;
   voteDisplay: VoteDisplay;
-  apply: (rules: readonly Rule[], voteDisplay: VoteDisplay, midterms: boolean) => void;
+  apply: (rules: readonly Rule[], voteDisplay: VoteDisplay, midterms: boolean, traits: boolean) => void;
   dismiss: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [draft, setDraft] = useState<readonly Rule[]>(corrections);
   const [display, setDisplay] = useState<VoteDisplay>(voteDisplay);
   const [withMidterms, setWithMidterms] = useState(midterms);
+  const [withTraits, setWithTraits] = useState(traits);
   const preset = rulePreset(draft);
 
   useEffect(() => {
@@ -93,7 +95,7 @@ export function RuleSettings({ corrections, midterms, voteDisplay, apply, dismis
     <dialog className="rule-dialog" ref={dialog} aria-labelledby="rules-title" onClose={dismiss}>
       <form onSubmit={(event) => {
         event.preventDefault();
-        apply(RULES.filter((rule) => draft.includes(rule)), display, withMidterms);
+        apply(RULES.filter((rule) => draft.includes(rule)), display, withMidterms, withTraits);
         dialog.current?.close();
       }}>
         <header className="rule-heading">
@@ -129,6 +131,14 @@ export function RuleSettings({ corrections, midterms, voteDisplay, apply, dismis
                 same seed. On by default; the spreadsheet has no midterms, so switch this off to match it exactly.</small></span>
               <input type="checkbox" role="switch" checked={withMidterms} onChange={(event) => setWithMidterms(event.target.checked)}
                 aria-label="Midterm elections" aria-describedby="rule-midterms" />
+            </label>
+            <label className="rule-row">
+              <span><strong>Candidate traits</strong><small id="rule-traits">Every party picks a nominee before the vote. Their home
+                state leans their way, charisma and experience move national support a little, and a sitting president running
+                again gets an edge. Home states are real; charisma and experience are rolled for each timeline. On by default;
+                switch this off to match the spreadsheet.</small></span>
+              <input type="checkbox" role="switch" checked={withTraits} onChange={(event) => setWithTraits(event.target.checked)}
+                aria-label="Candidate traits" aria-describedby="rule-traits" />
             </label>
           </fieldset>
           <fieldset className="rule-list">

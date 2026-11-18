@@ -3,13 +3,14 @@ import { partyName, STATES } from '../engine/data';
 import { electoralTotals } from '../engine/states';
 import { NO_VOTE, SECEDED, type Term } from '../engine/types';
 import { ideologyLabel } from '../engine/util';
+import type { Nominee } from '../engine/candidates';
 import type { Timeline } from '../engine/simulate';
 import { Icon } from './Icon';
 import { geoBody, savePicture, tileBody, type Caption, type LegendItem, type MapShape, type MapShapes, type Picture } from './imageExport';
 import { PartyLink, PresidentLink } from './People';
 import { SaveImageButton } from './SaveImageButton';
 import { useVoteDisplay, type VoteDisplay } from './voteDisplay';
-import { approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
+import { CHARISMA_LABELS, EXPERIENCE_LABELS, approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
 
 type MapStyle = 'map' | 'tiles';
@@ -133,6 +134,14 @@ function stateResult(term: Term, index: number): string {
   return winner === NO_VOTE || winner === undefined ? 'No vote' : partyName(winner);
 }
 
+const stateName = (code: string) => STATES.find((state) => state.code === code)?.name ?? code;
+
+/** Hover text for a nominee: home state and traits. */
+function nomineeTitle(nominee: Nominee): string {
+  return [nominee.home ? `From ${stateName(nominee.home)}` : 'No home state on record', CHARISMA_LABELS[nominee.charisma],
+    EXPERIENCE_LABELS[nominee.experience], nominee.incumbent ? 'Incumbent' : null].filter(Boolean).join(' · ');
+}
+
 /** The winner strip shared by every saved picture of an election. */
 export function pictureWinner(term: Term, display: VoteDisplay): Picture['winner'] {
   const live = electoralTotals(term.grid).live;
@@ -238,6 +247,9 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
 }) {
   const results = partyResults(term);
   const display = useVoteDisplay();
+  // Each party's nominee when candidate traits are on.
+  const nomineeOf = (party: number) => term.nominees?.find((nominee) => nominee.party === party);
+  const winnerNominee = nomineeOf(term.winnerParty);
   // Electoral votes still cast (seceded states excluded). The sheet records none for 1792.
   const live = electoralTotals(term.grid).live;
   return <section className="panel results" aria-labelledby="results-title">
@@ -248,6 +260,11 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
       </div>
       <h3><PresidentLink name={term.winnerName} began={winnerBegan} /></h3>
       <p className="winner-ideology">{ideologyLabel(winnerIdeology)} <span>{signed(winnerIdeology)}</span></p>
+      {winnerNominee && <p className="winner-traits" aria-label="Candidate traits">
+        {[winnerNominee.home ? `From ${stateName(winnerNominee.home)}` : null, CHARISMA_LABELS[winnerNominee.charisma],
+          EXPERIENCE_LABELS[winnerNominee.experience], winnerNominee.incumbent ? 'Incumbent' : null]
+          .filter(Boolean).map((trait) => <span key={trait}>{trait}</span>)}
+      </p>}
       <dl className="winner-stats">
         <div><dt>Electoral votes</dt><dd>{live > 0
           ? <>{Math.round(term.winnerElectoralShare * live)}<small className="winner-of"> of {live}</small></>
@@ -266,7 +283,8 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
           <th scope="col"><abbr title={display === 'percent' ? 'Popular vote' : 'Popular votes, estimated from real US turnout'}>PV</abbr></th><th scope="col">Ideology</th></tr></thead>
         <tbody>{results.map((party) => (
           <tr key={party.index}>
-            <th scope="row"><PartyLink party={party.index} /></th>
+            <th scope="row"><PartyLink party={party.index} />{nomineeOf(party.index) && <small className="nominee"
+              title={nomineeTitle(nomineeOf(party.index)!)}>{nomineeOf(party.index)!.name}</small>}</th>
             <td>{percent(party.electoral)}</td>
             {/* The hover text sits on the cell: this table styles any span as a faint sub-label. */}
             <td title={party.popular === null || display === 'percent' ? undefined

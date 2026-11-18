@@ -31,6 +31,8 @@ export interface TimelineLocation {
   dials: Dials;
   /** Midterm elections, an addition that is on unless the link says midterms=0. */
   midterms: boolean;
+  /** Candidate traits, an addition that is on unless the link says traits=0. */
+  traits: boolean;
 }
 
 export function readLocation(search: string): TimelineLocation {
@@ -48,10 +50,11 @@ export function readLocation(search: string): TimelineLocation {
     corrections: RULES.filter((rule) => selected.has(rule)),
     dials: parseDials(params.get('dials')),
     midterms,
+    traits: params.get('traits') !== '0',
   };
 }
 
-export function timelineUrl(href: string, { seed, year, corrections, dials, midterms }: TimelineLocation): URL {
+export function timelineUrl(href: string, { seed, year, corrections, dials, midterms, traits }: TimelineLocation): URL {
   const url = new URL(href);
   url.searchParams.set('seed', String(seed));
   url.searchParams.set('year', String(year));
@@ -64,6 +67,8 @@ export function timelineUrl(href: string, { seed, year, corrections, dials, midt
   // On is the default, so only "off" is written into the link.
   if (midterms) url.searchParams.delete('midterms');
   else url.searchParams.set('midterms', '0');
+  if (traits) url.searchParams.delete('traits');
+  else url.searchParams.set('traits', '0');
   return url;
 }
 
@@ -155,3 +160,12 @@ export function approximateCount(votes: number): string {
   const rounded = votes >= 1e4 ? Math.round(votes / 100) * 100 : Math.round(votes / 10) * 10;
   return rounded.toLocaleString('en-US');
 }
+
+/** The additions switched on, in words: "midterm elections and candidate traits". */
+export function additionsText(midterms: boolean, traits: boolean): string {
+  return [midterms && 'midterm elections', traits && 'candidate traits'].filter(Boolean).join(' and ');
+}
+
+/** Candidate traits in words. */
+export const CHARISMA_LABELS: Record<number, string> = { [-2]: 'Wooden', [-1]: 'Stiff', 0: 'Steady', 1: 'Likable', 2: 'Magnetic' };
+export const EXPERIENCE_LABELS = ['Newcomer', 'Seasoned', 'Veteran'] as const;

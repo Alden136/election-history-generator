@@ -2,6 +2,7 @@
  * Typed access to the data files extracted from the sheet.
  */
 import candidatesJson from '../../data/candidates.json';
+import candidateHomesJson from '../../data/candidate-homes.json';
 import dialsJson from '../../data/dials.json';
 import electionsJson from '../../data/elections.json';
 import initialJson from '../../data/initial-state.json';
@@ -38,6 +39,8 @@ export const CENSUS_ELECTIONS: ReadonlySet<number> = new Set(electionsJson.censu
 export const URBAN_DIRECTION: Record<string, string | undefined> = electionsJson.urbanDirection;
 export const DEFAULT_DIALS: Dials = dialsJson;
 export const CANDIDATES: Record<string, string[] | undefined> = candidatesJson.byElection;
+/** Home state code of each listed candidate, where known (candidate traits addition). */
+export const CANDIDATE_HOMES: Record<string, string | undefined> = candidateHomesJson.homes;
 export const START_BLOCS = initialJson.blocs;
 export const START_COURT: (number | null)[] = initialJson.court;
 

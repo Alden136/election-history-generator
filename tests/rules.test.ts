@@ -11,8 +11,9 @@ import { nextWinners, NO_EXPANSIONS, updateExpansions } from '../src/engine/stat
 import { summarise } from '../src/engine/summary';
 import { NO_VOTE, type Context } from '../src/engine/types';
 
-// Timelines from before midterms existed: the new midterm fields are left out so the pinned digests still apply.
-const withoutMidterms = (key: string, value: unknown) => (key === 'midterm' || key === 'midterms' ? undefined : value);
+// Timelines from before the additions existed: their fields are left out so the pinned digests still apply.
+const ADDITION_KEYS = new Set(['midterm', 'midterms', 'nominees', 'candidateTraits']);
+const withoutMidterms = (key: string, value: unknown) => (ADDITION_KEYS.has(key) ? undefined : value);
 
 const context = (...rules: Rule[]): Context => ({
   dials: DEFAULT_DIALS,
@@ -174,7 +175,7 @@ describe('individual corrections', () => {
     const seed = 508;
     const dials = { partyLoyalty: 0.97, secessionThreshold: 15.8, partyVictoryBoost: 24,
       crisisBacklash: 7.1, potusBacklash: 0.63, blocSizeMultiplier: 33 };
-    const legacy = { seed, year: 1816, dials, corrections: RULES.filter((rule) => rule !== 'contingent-eligibility'), midterms: false };
+    const legacy = { seed, year: 1816, dials, corrections: RULES.filter((rule) => rule !== 'contingent-eligibility'), midterms: false, traits: false };
     const original = readLocation(timelineUrl('https://example.test/', legacy).search);
     const current = readLocation(timelineUrl('https://example.test/', { ...legacy, corrections: RULES }).search);
     const term = (settings: typeof original) => simulate(seed, settings).terms.find((item) => item.election === 1816)!;
@@ -218,7 +219,7 @@ describe('preset replay', () => {
     expect(corrected.terms).not.toEqual(simulate(42).terms);
     const rules = ['whig-loyalty', 'populist-authoritarian'] as const;
     const custom = simulate(42, { ...DEFAULT_SETTINGS, corrections: rules });
-    const url = timelineUrl('https://example.test/election/?tag=keep#main', { seed: 42, year: 1848, corrections: rules, dials: DEFAULT_DIALS, midterms: false });
+    const url = timelineUrl('https://example.test/election/?tag=keep#main', { seed: 42, year: 1848, corrections: rules, dials: DEFAULT_DIALS, midterms: false, traits: false });
     const replay = readLocation(url.search);
     expect(url.pathname).toBe('/election/');
     expect(url.searchParams.get('tag')).toBe('keep');
@@ -230,7 +231,7 @@ describe('preset replay', () => {
   });
 
   it('defaults links to Corrected, writes Faithful as none, and discards unknown rules', () => {
-    expect(readLocation('?seed=7&year=1960')).toEqual({ seed: 7, year: 1960, corrections: RULES, dials: DEFAULT_DIALS, midterms: true });
+    expect(readLocation('?seed=7&year=1960')).toEqual({ seed: 7, year: 1960, corrections: RULES, dials: DEFAULT_DIALS, midterms: true, traits: true });
     expect(readLocation('?seed=7&year=1960&rules=none').corrections).toEqual([]);
     const current = readLocation('?seed=7&year=1960&rules=unknown,whig-loyalty,whig-loyalty');
     expect(current.corrections).toEqual(['whig-loyalty']);

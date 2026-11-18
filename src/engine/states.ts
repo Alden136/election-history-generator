@@ -7,6 +7,7 @@
  *
  * Comments marked QUIRK keep behaviour that looks unintended in the sheet.
  */
+import { HOME_STATE_BONUS } from './candidates';
 import {
   CENSUS_ELECTIONS,
   NAMED_PARTY_COUNT,
@@ -187,6 +188,8 @@ export interface VotingInput {
   /** National support and shown ideology, 15 entries each. */
   support: readonly number[];
   shownIdeology: readonly number[];
+  /** Candidate traits addition: for each state, the parties whose nominee calls it home. */
+  homes?: readonly (readonly number[])[];
 }
 
 function loyaltyParty(party: number, corrections: Context['corrections']): number | undefined {
@@ -231,8 +234,9 @@ export function nextWinners(
     if (votes[i] === 0) return NO_VOTE;
     const scores: number[] = [];
     for (let p = 0; p < PARTY_COUNT; p++) {
+      const home = input.homes?.[i]?.includes(p) ? HOME_STATE_BONUS : 0;
       scores.push(
-        Math.abs(input.shownIdeology[p]! - lean[i]!) - input.support[p]! * dials.partyVictoryBoost + penalty[p]!,
+        Math.abs(input.shownIdeology[p]! - lean[i]!) - input.support[p]! * dials.partyVictoryBoost + penalty[p]! - home,
       );
     }
     return argMin(scores);

@@ -4,6 +4,7 @@
  * Each term is computed from the terms before it, in the order the sheet's
  * formulas depend on each other. The same seed always gives the same result.
  */
+import { chooseNominees, homeStates, supportWithNominees } from './candidates';
 import { electCongress, electMidterm, electPresident } from './congress';
 import { courtAverage, updateCourt } from './court';
 import {
@@ -57,6 +58,8 @@ export interface Timeline {
   corrections: readonly Rule[];
   /** True when midterm elections were simulated. */
   midterms: boolean;
+  /** True when candidate traits were simulated. */
+  candidateTraits: boolean;
   /** One entry per election, 1792 first. */
   terms: Term[];
   /** The president inaugurated in 2065, after the last election. */
@@ -145,6 +148,7 @@ function firstTerm(ctx: Context): Term {
     leanShift: 0,
     // The founding Congress sits through the first term; midterms begin in 1794.
     midterm: null,
+    nominees: null,
     court: [...START_COURT],
     courtAverage: courtAverage(START_COURT),
     grid: initialGrid(),
@@ -213,12 +217,22 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   );
   const strengthThird = thirdPartyStrength(strength);
   const { votes, totals, nonvoters } = partyVotes(strength, ideology, shares, ctx.corrections);
-  const { support, shownIdeology } = nationalSupport(election, strength, strengthThird, totals, ideology, ctx);
+  const national = nationalSupport(election, strength, strengthThird, totals, ideology, ctx);
+  const { shownIdeology } = national;
+
+  // With candidate traits on, each party picks a nominee first, and who runs moves
+  // the vote: their appeal shifts national support and their home state leans their
+  // way. With traits off nothing here draws a random number, so timelines are unchanged.
+  const nominees = ctx.candidateTraits
+    ? chooseNominees({ election, support: national.support, ideology, center, president, previousPresident: prev.president, potusParty, descriptor: label }, ctx)
+    : null;
+  const support = nominees ? supportWithNominees(national.support, nominees) : national.support;
 
   // The states vote.
   const grid = nextGrid(
     prev.grid,
-    { index, election, expansions, expanded, performance: perf, descriptor: label, potusIdeology, support, shownIdeology },
+    { index, election, expansions, expanded, performance: perf, descriptor: label, potusIdeology, support, shownIdeology,
+      ...(nominees && { homes: homeStates(nominees) }) },
     ctx,
   );
   const electoral = electoralShares(grid, ctx);
@@ -229,7 +243,7 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   const winnerParty = electPresident(electoral, sitting, ctx.corrections);
   const result = potusParty === winnerParty ? 'WIN' : 'LOSS';
   const nextIdeology = winnerParty === P.THIRD ? center : ideology[winnerParty]!;
-  const winner = winnerName(
+  const winner = nominees?.find((n) => n.party === winnerParty)?.name ?? winnerName(
     election,
     president,
     prev.president,
@@ -266,6 +280,7 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
     congressIdeology: congress.ideology,
     congressLeader: congress.leader,
     closeness: congress.closeness,
+    nominees,
     midterm,
     strength,
     strengthThird,
@@ -288,7 +303,8 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
 export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): Timeline {
   const corrections = RULES.filter((rule) => settings.corrections?.includes(rule));
   const midterms = settings.midterms === true;
-  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms };
+  const candidateTraits = settings.candidateTraits === true;
+  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms, candidateTraits, seed };
 
   const terms: Term[] = [firstTerm(ctx)];
   while (terms.length < ELECTIONS.length) terms.push(nextTerm(terms, ctx));
@@ -325,6 +341,7 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
     preset: rulePreset(corrections),
     corrections,
     midterms,
+    candidateTraits,
     terms,
     finalPresident,
     finalExpansions,

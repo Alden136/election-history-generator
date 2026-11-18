@@ -47,10 +47,13 @@ export function Overview({ timeline, openElection }: { timeline: Timeline; openE
             return (
               <div className="notable" key={label}>
                 <span className="eyebrow">{label}</span>
-                <h4><PresidentLink name={president.name} began={start}>{president.name}<Icon name="arrow" size={14} /></PresidentLink></h4>
+                {/* The name opens the election map for the year that put them in office. */}
+                <h4>{year !== undefined
+                  ? <button type="button" className="text-button notable-name" title={`Open the ${year} election map`}
+                    onClick={() => openElection(year)}>{president.name}<Icon name="arrow" size={14} /></button>
+                  : <PresidentLink name={president.name} began={start}>{president.name}<Icon name="arrow" size={14} /></PresidentLink>}</h4>
                 <p><PartyLink party={president.party} /></p>
-                <p className="notable-term">{year !== undefined && <button type="button" className="text-button notable-election"
-                  title={`Open the ${year} election`} onClick={() => openElection(year)}>{year} election</button>}{year !== undefined && <> <span>·</span> </>}{president.terms?.map(({ start, end }) => `${start}–${end}`).join(', ') ??
+                <p className="notable-term">{year !== undefined && <>{year} election <span>·</span> </>}{president.terms?.map(({ start, end }) => `${start}–${end}`).join(', ') ??
                   (president.termEnd === null ? `Inaugurated ${president.termStart}` :
                     president.termStart === president.termEnd ? president.termStart : `${president.termStart}–${president.termEnd}`)}
                   {president.info && <> <span>·</span> {president.info}</>}</p>

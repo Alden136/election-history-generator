@@ -695,8 +695,7 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 .profile-link:hover { color: inherit; text-decoration: underline 2px var(--accent); text-underline-offset: 3px; }
 .profile-link .party { color: inherit; }
 .winner .profile-link:hover, .results-congress .profile-link:hover { text-decoration-color: currentColor; }
-.notable h4 .profile-link { align-items: center; }
-.notable-election { display: inline; font: inherit; color: var(--text); text-decoration: underline 1px; text-underline-offset: 2px; }
+.notable h4 .profile-link, .notable h4 .notable-name { align-items: center; }
 
 /* Political history: Elections, Presidents, Parties */
 .history-tabs { display: inline-flex; margin-bottom: 14px; }

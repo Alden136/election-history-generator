@@ -4,6 +4,7 @@ import { RULES, type Rule } from '../engine/rules';
 import type { Dials, Term } from '../engine/types';
 import { CHARISMA_STEP, EXPERIENCE_STEP, HOME_STATE_BONUS, INCUMBENT_EDGE, type Nominee } from '../engine/candidates';
 import type { Fight, Primary, Wing } from '../engine/primaries';
+import type { Departure, Succession } from '../engine/succession';
 import { encodeDials, parseDials } from './dials';
 
 export const DEFAULT_SEED = 42;
@@ -37,6 +38,8 @@ export interface TimelineLocation {
   traits: boolean;
   /** Primaries, an addition that is on unless the link says primaries=0. They only run with candidate traits on. */
   primaries: boolean;
+  /** Running mates and succession, an addition that is on unless the link says vp=0. They only run with candidate traits on. */
+  runningMates: boolean;
 }
 
 export function readLocation(search: string): TimelineLocation {
@@ -56,10 +59,11 @@ export function readLocation(search: string): TimelineLocation {
     midterms,
     traits: params.get('traits') !== '0',
     primaries: params.get('primaries') !== '0',
+    runningMates: params.get('vp') !== '0',
   };
 }
 
-export function timelineUrl(href: string, { seed, year, corrections, dials, midterms, traits, primaries }: TimelineLocation): URL {
+export function timelineUrl(href: string, { seed, year, corrections, dials, midterms, traits, primaries, runningMates }: TimelineLocation): URL {
   const url = new URL(href);
   url.searchParams.set('seed', String(seed));
   url.searchParams.set('year', String(year));
@@ -76,6 +80,8 @@ export function timelineUrl(href: string, { seed, year, corrections, dials, midt
   else url.searchParams.set('traits', '0');
   if (primaries) url.searchParams.delete('primaries');
   else url.searchParams.set('primaries', '0');
+  if (runningMates) url.searchParams.delete('vp');
+  else url.searchParams.set('vp', '0');
   return url;
 }
 
@@ -168,9 +174,9 @@ export function approximateCount(votes: number): string {
   return rounded.toLocaleString('en-US');
 }
 
-/** The additions switched on, in words: "midterm elections, candidate traits and primaries". Primaries count only with traits. */
-export function additionsText(midterms: boolean, traits: boolean, primaries = false): string {
-  const on = [midterms && 'midterm elections', traits && 'candidate traits', traits && primaries && 'primaries'].filter((item): item is string => Boolean(item));
+/** The additions switched on, in words: "midterm elections, candidate traits and primaries". Primaries and running mates count only with traits. */
+export function additionsText(midterms: boolean, traits: boolean, primaries = false, runningMates = false): string {
+  const on = [midterms && 'midterm elections', traits && 'candidate traits', traits && primaries && 'primaries', traits && runningMates && 'running mates'].filter((item): item is string => Boolean(item));
   return on.length > 1 ? `${on.slice(0, -1).join(', ')} and ${on.at(-1)}` : on.join('');
 }
 
@@ -229,4 +235,12 @@ export function primaryEffects(primary: Primary): { label: string; effect: strin
       + 'a winning president governs from it, and the party moves toward it.' },
     { label: FIGHT_LABELS[primary.fight], effect: fight + (loser.incumbent ? ' Denied the sitting president renomination.' : '') },
   ];
+}
+
+/** How a president left office early, in words. */
+export const DEPARTURE_LABELS: Record<Departure, string> = { death: 'Died in office', assassination: 'Assassinated', resignation: 'Resigned' };
+
+/** "Died in office in 1841; John Tyler took over" */
+export function successionText(succession: Succession): string {
+  return `${DEPARTURE_LABELS[succession.cause]} in ${succession.year}; ${succession.successor} took over`;
 }

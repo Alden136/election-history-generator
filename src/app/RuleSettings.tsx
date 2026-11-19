@@ -68,13 +68,14 @@ const descriptions: Record<Rule, { title: string; detail: string }> = {
   },
 };
 
-export function RuleSettings({ corrections, midterms, traits, primaries, voteDisplay, apply, dismiss }: {
+export function RuleSettings({ corrections, midterms, traits, primaries, runningMates, voteDisplay, apply, dismiss }: {
   corrections: readonly Rule[];
   midterms: boolean;
   traits: boolean;
   primaries: boolean;
+  runningMates: boolean;
   voteDisplay: VoteDisplay;
-  apply: (rules: readonly Rule[], voteDisplay: VoteDisplay, midterms: boolean, traits: boolean, primaries: boolean) => void;
+  apply: (rules: readonly Rule[], voteDisplay: VoteDisplay, midterms: boolean, traits: boolean, primaries: boolean, runningMates: boolean) => void;
   dismiss: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -83,6 +84,7 @@ export function RuleSettings({ corrections, midterms, traits, primaries, voteDis
   const [withMidterms, setWithMidterms] = useState(midterms);
   const [withTraits, setWithTraits] = useState(traits);
   const [withPrimaries, setWithPrimaries] = useState(primaries);
+  const [withRunningMates, setWithRunningMates] = useState(runningMates);
   const preset = rulePreset(draft);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export function RuleSettings({ corrections, midterms, traits, primaries, voteDis
     <dialog className="rule-dialog" ref={dialog} aria-labelledby="rules-title" onClose={dismiss}>
       <form onSubmit={(event) => {
         event.preventDefault();
-        apply(RULES.filter((rule) => draft.includes(rule)), display, withMidterms, withTraits, withPrimaries);
+        apply(RULES.filter((rule) => draft.includes(rule)), display, withMidterms, withTraits, withPrimaries, withRunningMates);
         dialog.current?.close();
       }}>
         <header className="rule-heading">
@@ -149,6 +151,16 @@ export function RuleSettings({ corrections, midterms, traits, primaries, voteDis
                 badly can be challenged. Needs candidate traits. On by default; switch this off to match the spreadsheet.</small></span>
               <input type="checkbox" role="switch" checked={withTraits && withPrimaries} disabled={!withTraits}
                 onChange={(event) => setWithPrimaries(event.target.checked)} aria-label="Primaries" aria-describedby="rule-primaries" />
+            </label>
+            <label className="rule-row" data-disabled={!withTraits || undefined}>
+              <span><strong>Running mates and succession</strong><small id="rule-running-mates">Every nominee picks a running mate,
+                often their primary rival, whose home state leans a little toward the ticket. Each term the president may die,
+                be assassinated or resign; the vice president then serves out the term and is the sitting president at the next
+                election, with sympathy after a death and a hit after a resignation. Needs candidate traits. On by default;
+                switch this off to match the spreadsheet.</small></span>
+              <input type="checkbox" role="switch" checked={withTraits && withRunningMates} disabled={!withTraits}
+                onChange={(event) => setWithRunningMates(event.target.checked)} aria-label="Running mates and succession"
+                aria-describedby="rule-running-mates" />
             </label>
           </fieldset>
           <fieldset className="rule-list">

@@ -3,8 +3,9 @@ import { partyName } from '../engine/data';
 import { ideologyLabel } from '../engine/util';
 import { Icon } from './Icon';
 import { Dot, Party } from './Party';
-import { ideologyChartBounds, PARTY_COLORS, percent, signed } from './presentation';
+import { DEPARTURE_LABELS, ideologyChartBounds, PARTY_COLORS, percent, signed } from './presentation';
 import { ordinal, type PartyProfile, type Presidency } from './profiles';
+import type { Departure } from '../engine/succession';
 
 /* ------------------------------------------------------------------ links */
 
@@ -43,11 +44,33 @@ function events(presidency: Presidency): string {
   return Array.from(counts, ([event, n]) => `${event === 'DICTATORSHIP' ? 'Dictatorship' : event}${n > 1 ? ` ×${n}` : ''}`).join(', ');
 }
 
-function approval(presidency: Presidency): string {
-  const scored = presidency.terms.filter((term) => term.dayOneApproval !== null);
-  if (!scored.length) return 'Not scored';
-  return `${percent(scored[0]!.dayOneApproval!)} → ${percent(scored.at(-1)!.electionDayApproval!)}`;
+/** "Took over on William H. Harrison's death" */
+function tookOverText({ from, cause }: { from: string; cause: Departure }): string {
+  if (cause === 'resignation') return `Took over when ${from} resigned`;
+  return `Took over on ${from}'s ${cause === 'assassination' ? 'assassination' : 'death'}`;
 }
+
+function approval(presidency: Presidency): string {
+  // A president who left early has no election day; one who took over had no day one.
+  const start = presidency.terms.find((term) => term.dayOneApproval !== null)?.dayOneApproval ?? null;
+  const end = [...presidency.terms].reverse().find((term) => term.electionDayApproval !== null)?.electionDayApproval ?? null;
+  if (start === null && end === null) return 'Not scored';
+  if (end === null) return `${percent(start!)} on day one`;
+  if (start === null) return `${percent(end)} on election day`;
+  return `${percent(start)} → ${percent(end)}`;
+}
+
+/** "2 terms", or with a cut-short or taken-over term, "2 terms + 3 years". */
+export function servedText(presidency: Presidency): string {
+  const partial = presidency.terms.filter((term) => term.left || term.tookOver);
+  const full = presidency.terms.length - partial.length;
+  if (!partial.length) return terms(full);
+  const years = partial.reduce((total, term) => total + term.end - term.began, 0);
+  const extra = years ? `${years} ${years === 1 ? 'year' : 'years'}` : 'under a year';
+  return full ? `${terms(full)} + ${extra}` : capitalise(extra);
+}
+
+const capitalise = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** Every presidency in order, numbered like real presidents. */
 export function Presidents({ list, focus, openElection }: {
@@ -89,13 +112,15 @@ export function Presidents({ list, focus, openElection }: {
           ref={presidency.number === focus ? focused : undefined} data-selected={presidency.number === focus}>
           <th scope="row" className="president-number">{ordinal(presidency.number)}</th>
           <td><strong className="president-name">{presidency.name}</strong>
-            {presidency.alsoServed.length > 0 && <small className="table-sub">Also the {presidency.alsoServed.map(ordinal).join(', ')}</small>}</td>
+            {presidency.alsoServed.length > 0 && <small className="table-sub">Also the {presidency.alsoServed.map(ordinal).join(', ')}</small>}
+            {presidency.tookOver && <small className="president-succession">{tookOverText(presidency.tookOver)}</small>}
+            {presidency.left && <small className="president-succession">{DEPARTURE_LABELS[presidency.left.cause]} in {presidency.left.year}</small>}</td>
           <td><span className="president-parties">{presidency.parties.map((party, i) => <span key={party}>
             {i > 0 && <span aria-label="then">→</span>}<PartyLink party={party} /></span>)}</span></td>
           <td>{years(presidency.from, presidency.to)}<small className="table-sub">
-            {presidency.last ? `${terms(presidency.terms.length)} · in office as the simulation ends` : terms(presidency.terms.length)}</small></td>
-          <td><span className="president-elections">{presidency.terms.map(({ electedIn }) => electedIn === null
-            ? <span key="founding" className="muted">Founding</span>
+            {presidency.last ? `${servedText(presidency)} · in office as the simulation ends` : servedText(presidency)}</small></td>
+          <td><span className="president-elections">{presidency.terms.map(({ electedIn, tookOver }) => electedIn === null
+            ? <span key={tookOver ? 'succeeded' : 'founding'} className="muted">{tookOver ? 'Succeeded' : 'Founding'}</span>
             : <button key={electedIn} type="button" className="text-button year-chip" onClick={() => openElection(electedIn)}>{electedIn}</button>)}</span></td>
           <td>{events(presidency) || <span className="muted">No major event</span>}</td>
           <td className="numeric">{approval(presidency)}</td>

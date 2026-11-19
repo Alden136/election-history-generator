@@ -4,7 +4,8 @@
  * Each term is computed from the terms before it, in the order the sheet's
  * formulas depend on each other. The same seed always gives the same result.
  */
-import { chooseNominees, homeStates, supportWithNominees } from './candidates';
+import { chooseNominees, homeStates, nameLists, supportWithNominees } from './candidates';
+import { chooseRunningMates, rollSuccession, runningMateHomes, SUCCESSION_MOOD } from './succession';
 import { holdPrimaries, nomineePosition, partyAfterPrimaries, supportAfterPrimaries } from './primaries';
 import { electCongress, electMidterm, electPresident } from './congress';
 import { courtAverage, updateCourt } from './court';
@@ -18,6 +19,7 @@ import {
   BLOC_COUNT,
   START_BLOCS,
   START_COURT,
+  STATES,
 } from './data';
 import {
   blocShares,
@@ -51,7 +53,7 @@ import {
 } from './states';
 import { summarise, type FinalPresident, type Summary } from './summary';
 import { SECEDED, type Context, type Expansions, type Settings, type Term } from './types';
-import { argMax } from './util';
+import { argMax, clamp } from './util';
 
 export interface Timeline {
   seed: number;
@@ -63,6 +65,8 @@ export interface Timeline {
   candidateTraits: boolean;
   /** True when primaries were simulated (only ever with candidate traits). */
   primaries: boolean;
+  /** True when running mates and succession were simulated (only ever with candidate traits). */
+  runningMates: boolean;
   /** One entry per election, 1792 first. */
   terms: Term[];
   /** The president inaugurated in 2065, after the last election. */
@@ -153,6 +157,9 @@ function firstTerm(ctx: Context): Term {
     midterm: null,
     nominees: null,
     primaries: null,
+    runningMates: null,
+    vicePresident: null,
+    succession: null,
     court: [...START_COURT],
     courtAverage: courtAverage(START_COURT),
     grid: initialGrid(),
@@ -192,6 +199,16 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   const label = descriptor(perf, potusIdeology, potusParty, prev, ctx);
   const stable = stability(perf, potusIdeology, expanded, history);
 
+  // With running mates on, the president may die, be killed or resign during the
+  // term; the vice president then serves it out and is the sitting president at
+  // the election. With them off nothing here draws a random number.
+  const vicePresident = prev.runningMates?.find((mate) => mate.party === potusParty)?.name ?? null;
+  const succession = ctx.runningMates && vicePresident
+    ? rollSuccession({ termBegan, president, party: potusParty, vicePresident, descriptor: label,
+      experience: prev.nominees?.find((nominee) => nominee.party === potusParty)?.experience ?? 0 }, ctx)
+    : null;
+  const sittingPresident = succession?.successor ?? president;
+
   // With midterms on, a new Congress is elected two years in and sits for the
   // rest of the term: it shapes election-day approval and the court, decides a
   // deadlocked election and carries into the next Congress. With them off, no
@@ -204,9 +221,11 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   // Congress as it sat during the term, and the court.
   const congressIdeologyBefore = sitting.congressIdeology;
   const court = updateCourt(prev.court, potusIdeology, congressIdeologyBefore, ctx);
-  const electionDay = electionDayApproval(
+  const approvalOnTheDay = electionDayApproval(
     dayOne, perf, label, potusIdeology, congressIdeologyBefore, potusParty, prev, ctx,
   );
+  // Sympathy after a death in office, a hit after a resignation.
+  const electionDay = succession ? clamp(approvalOnTheDay + SUCCESSION_MOOD[succession.cause], 0.05, 0.9) : approvalOnTheDay;
 
   // The electorate and the parties.
   const blocSizes = updateBlocSizes(prev, potusIdeology, dayOne, electionDay, ctx);
@@ -230,12 +249,18 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   // way. With primaries on too, the named parties pick them in a primary: a bitter
   // fight costs support, and voters see the position the nominee ran on. With the
   // additions off nothing here draws a random number, so timelines are unchanged.
-  const nomination = { election, support: national.support, ideology, center, president, previousPresident: prev.president, potusParty, descriptor: label };
+  const nomination = { election, support: national.support, ideology, center, potusParty, descriptor: label,
+    // A vice president who took over is the sitting president; the one before them is who they replaced.
+    president: sittingPresident, previousPresident: succession ? president : prev.president };
   const primaryRun = ctx.candidateTraits && ctx.primaries ? holdPrimaries({ ...nomination, performance: perf, potusIdeology }, ctx) : null;
   const nominees = primaryRun?.nominees ?? (ctx.candidateTraits ? chooseNominees(nomination, ctx) : null);
   const primaries = primaryRun?.primaries ?? null;
   const appeal = nominees ? supportWithNominees(national.support, nominees) : national.support;
   const support = primaries ? supportAfterPrimaries(appeal, primaries) : appeal;
+  const runningMates = nominees && ctx.runningMates
+    ? chooseRunningMates(nominees, primaries, nameLists(election),
+      (party) => (party === P.THIRD ? center : nomineePosition(primaries, party) ?? ideology[party]!), new Set([sittingPresident]), ctx)
+    : null;
   const shownIdeology = primaries
     ? national.shownIdeology.map((score, party) => nomineePosition(primaries, party) ?? score)
     : national.shownIdeology;
@@ -244,7 +269,8 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   const grid = nextGrid(
     prev.grid,
     { index, election, expansions, expanded, performance: perf, descriptor: label, potusIdeology, support, shownIdeology,
-      ...(nominees && { homes: homeStates(nominees) }) },
+      ...(nominees && { homes: homeStates(nominees) }),
+      ...(runningMates && { mateHomes: runningMateHomes(runningMates, STATES.map((state) => state.code)) }) },
     ctx,
   );
   const electoral = electoralShares(grid, ctx);
@@ -294,6 +320,9 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
     closeness: congress.closeness,
     nominees,
     primaries,
+    runningMates,
+    vicePresident,
+    succession,
     midterm,
     strength,
     strengthThird,
@@ -318,7 +347,8 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
   const midterms = settings.midterms === true;
   const candidateTraits = settings.candidateTraits === true;
   const primaries = candidateTraits && settings.primaries === true;
-  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms, candidateTraits, primaries, seed };
+  const runningMates = candidateTraits && settings.runningMates === true;
+  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms, candidateTraits, primaries, runningMates, seed };
 
   const terms: Term[] = [firstTerm(ctx)];
   while (terms.length < ELECTIONS.length) terms.push(nextTerm(terms, ctx));
@@ -357,6 +387,7 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
     midterms,
     candidateTraits,
     primaries,
+    runningMates,
     terms,
     finalPresident,
     finalExpansions,

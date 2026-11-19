@@ -10,7 +10,7 @@ import { geoBody, savePicture, tileBody, type Caption, type LegendItem, type Map
 import { PartyLink, PresidentLink } from './People';
 import { SaveImageButton } from './SaveImageButton';
 import { useVoteDisplay, type VoteDisplay } from './voteDisplay';
-import { CHARISMA_LABELS, EXPERIENCE_LABELS, traitEffects, approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
+import { CHARISMA_LABELS, EXPERIENCE_LABELS, successionText, traitEffects, approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
 import { justiceCount } from './court';
 
@@ -138,9 +138,10 @@ function stateResult(term: Term, index: number): string {
 const stateName = (code: string) => STATES.find((state) => state.code === code)?.name ?? code;
 
 /** Hover text for a nominee: home state and traits. */
-function nomineeTitle(nominee: Nominee): string {
+function nomineeTitle(nominee: Nominee, mate?: Nominee): string {
   return [nominee.home ? `From ${stateName(nominee.home)}` : 'No home state on record', CHARISMA_LABELS[nominee.charisma],
-    EXPERIENCE_LABELS[nominee.experience], nominee.incumbent ? 'Incumbent' : null].filter(Boolean).join(' · ');
+    EXPERIENCE_LABELS[nominee.experience], nominee.incumbent ? 'Incumbent' : null,
+    mate ? `Running mate: ${mate.name}${mate.home ? ` (${stateName(mate.home)})` : ''}` : null].filter(Boolean).join(' · ');
 }
 
 /** The winner strip shared by every saved picture of an election. */
@@ -251,6 +252,8 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
   // Each party's nominee when candidate traits are on.
   const nomineeOf = (party: number) => term.nominees?.find((nominee) => nominee.party === party);
   const winnerNominee = nomineeOf(term.winnerParty);
+  const mateOf = (party: number) => term.runningMates?.find((mate) => mate.party === party);
+  const winnerMate = mateOf(term.winnerParty);
   // Electoral votes still cast (seceded states excluded). The sheet records none for 1792.
   const live = electoralTotals(term.grid).live;
   return <section className="panel results" aria-labelledby="results-title">
@@ -267,6 +270,8 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
           aria-describedby={`trait-effect-${i}`}>{label}<span className="trait-effect" role="tooltip" id={`trait-effect-${i}`}>
             <strong>{label}</strong>{effect}</span></span>)}
       </p>}
+      {winnerMate && <p className="winner-mate">Running mate <strong>{winnerMate.name}</strong>
+        {winnerMate.home && <span> · From {stateName(winnerMate.home)}</span>}</p>}
       <dl className="winner-stats">
         <div><dt>Electoral votes</dt><dd>{live > 0
           ? <>{Math.round(term.winnerElectoralShare * live)}<small className="winner-of"> of {live}</small></>
@@ -286,7 +291,8 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
         <tbody>{results.map((party) => (
           <tr key={party.index}>
             <th scope="row"><PartyLink party={party.index} />{nomineeOf(party.index) && <small className="nominee"
-              title={nomineeTitle(nomineeOf(party.index)!)}>{nomineeOf(party.index)!.name}</small>}</th>
+              title={nomineeTitle(nomineeOf(party.index)!, mateOf(party.index))}>{nomineeOf(party.index)!.name}
+              {mateOf(party.index) && ` / ${mateOf(party.index)!.name}`}</small>}</th>
             <td>{percent(party.electoral)}</td>
             {/* The hover text sits on the cell: this table styles any span as a faint sub-label. */}
             <td title={party.popular === null || display === 'percent' ? undefined
@@ -327,7 +333,9 @@ export function TermDetails({ timeline, term }: { timeline: Timeline; term: Term
       <span className="panel-count">{began}–{began + 4}</span></div>
     <div className="term-grid">
       <div><span className="eyebrow">President</span><strong><PresidentLink name={term.winnerName} began={began} /></strong>
-        <PartyLink party={term.winnerParty} /></div>
+        <PartyLink party={term.winnerParty} />
+        {next?.succession ? <small className="term-succession">{successionText(next.succession)}</small>
+          : next?.vicePresident && <small>Vice president {next.vicePresident}</small>}</div>
       <div><span className="eyebrow">Term event</span><strong>{descriptor || 'No major event'}</strong>
         <small>{ideologyLabel(ideology)} · {signed(ideology)}</small></div>
       <div><span className="eyebrow">Election-day approval</span>

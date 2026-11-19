@@ -7,6 +7,7 @@
  */
 import { partyName } from '../engine/data';
 import type { Timeline } from '../engine/simulate';
+import type { Succession } from '../engine/succession';
 import { SECEDED, type Expansions, type Term } from '../engine/types';
 import { ordinal, presidencies, type Presidency } from './profiles';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
@@ -45,6 +46,8 @@ export interface ChapterFacts {
   territory: { election: number; joined: (keyof Expansions)[]; left: (keyof Expansions)[] }[];
   /** How many terms had each event, most first; empty events are left out. */
   events: { event: string; count: number }[];
+  /** Presidents who left office early and the vice presidents who took over (running mates addition). */
+  successions: Succession[];
 }
 
 export interface StoryChapter {
@@ -147,6 +150,7 @@ export function chapterFacts(timeline: Timeline, chapter: number): ChapterFacts 
     chaos: inChapter.filter((t) => t.event === 'Chaos').map((t) => ({ began: t.began, president: t.president })),
     dictatorships, secession, territory,
     events: Array.from(counts, ([event, count]) => ({ event, count })).sort((a, b) => b.count - a.count || a.event.localeCompare(b.event)),
+    successions: terms.flatMap((t) => (t.succession && t.termBegan >= from && t.termBegan < to ? [t.succession] : [])),
   };
 }
 
@@ -293,6 +297,20 @@ function parties(facts: ChapterFacts): string | null {
   return sentences.length ? sentences.join(' ') : null;
 }
 
+const departed = (s: Succession) => s.cause === 'death' ? `${s.president} died in office`
+  : s.cause === 'assassination' ? `${s.president} was assassinated` : `${s.president} resigned`;
+
+/** "John Tyler became president in 1841 when William H. Harrison died in office." */
+function successionSentence(successions: readonly Succession[]): string {
+  if (successions.length === 1) {
+    const s = successions[0]!;
+    return `${s.successor} became president in ${s.year} when ${departed(s)}.`;
+  }
+  // Semicolons, since each item has its own comma.
+  const items = successions.map((s) => `${s.successor} in ${s.year}, when ${departed(s)}`);
+  return `Vice presidents took over ${times(successions.length)}: ${items.slice(0, -1).join('; ')}; and ${items.at(-1)}.`;
+}
+
 function upheavals(facts: ChapterFacts): string | null {
   const sentences: string[] = [];
   if (facts.civilWars.length) {
@@ -303,6 +321,7 @@ function upheavals(facts: ChapterFacts): string | null {
   if (facts.chaos.length) {
     sentences.push(`The ${facts.chaos.length === 1 ? 'term' : 'terms'} that began in ${list(facts.chaos.map((c) => String(c.began)))} collapsed into chaos.`);
   }
+  if (facts.successions.length) sentences.push(successionSentence(facts.successions));
   if (facts.secession) {
     sentences.push(facts.secession.states === 1
       ? `One state seceded and sat out the ${facts.secession.election} election.`

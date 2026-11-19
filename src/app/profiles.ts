@@ -4,6 +4,7 @@
  * Display only; nothing here feeds back into the simulation.
  */
 import type { FinalPresident } from '../engine/summary';
+import type { Departure } from '../engine/succession';
 import type { Term } from '../engine/types';
 
 /** One four-year term served by a president. */
@@ -16,8 +17,14 @@ export interface ServedTerm {
   /** Null for the 2065 term, which the simulation does not score. */
   dayOneApproval: number | null;
   electionDayApproval: number | null;
-  /** The election that won this term; null for the founding term that began in 1789. */
+  /** The election that won this term; null for the founding term that began in 1789 and for a vice president who took over. */
   electedIn: number | null;
+  /** The year this stretch ended: four years on, or earlier when the president left office. */
+  end: number;
+  /** Set when the president left office before the term was up. */
+  left?: { year: number; cause: Departure };
+  /** Set when a vice president took over: whom they replaced and why. */
+  tookOver?: { from: string; cause: Departure };
 }
 
 /** An unbroken stretch in office, numbered like real presidencies (a return later counts again). */
@@ -35,26 +42,41 @@ export interface Presidency {
   alsoServed: number[];
   /** True when still in office as the simulation ends. */
   last: boolean;
+  /** Set when this presidency began with a vice president taking over. */
+  tookOver?: { from: string; cause: Departure };
+  /** Set when this presidency ended with the president leaving office early. */
+  left?: { year: number; cause: Departure };
 }
 
 type ProfileTerm = Pick<Term,
   'election' | 'termBegan' | 'president' | 'potusParty' | 'potusIdeology' | 'descriptor' | 'dayOneApproval' |
   'electionDayApproval' | 'winnerParty' | 'support' | 'shownIdeology' | 'congressLeader'
-> & { grid: Pick<Term['grid'], 'winners'> };
+> & Partial<Pick<Term, 'succession'>> & { grid: Pick<Term['grid'], 'winners'> };
 
 export function presidencies(terms: readonly ProfileTerm[], final: FinalPresident): Presidency[] {
-  const served: (ServedTerm & { name: string })[] = terms.map((term, k) => ({
-    name: term.president,
-    began: term.termBegan,
-    party: term.potusParty,
-    ideology: term.potusIdeology,
-    event: term.descriptor,
-    dayOneApproval: term.dayOneApproval,
-    electionDayApproval: term.electionDayApproval,
-    electedIn: k > 0 ? terms[k - 1]!.election : null,
-  }));
+  const served: (ServedTerm & { name: string })[] = terms.flatMap((term, k): (ServedTerm & { name: string })[] => {
+    const elected: ServedTerm & { name: string } = {
+      name: term.president,
+      began: term.termBegan,
+      end: term.termBegan + 4,
+      party: term.potusParty,
+      ideology: term.potusIdeology,
+      event: term.descriptor,
+      dayOneApproval: term.dayOneApproval,
+      electionDayApproval: term.electionDayApproval,
+      electedIn: k > 0 ? terms[k - 1]!.election : null,
+    };
+    const s = term.succession;
+    if (!s) return [elected];
+    // The vice president serves out the term and faces its election-day approval.
+    return [
+      { ...elected, end: s.year, electionDayApproval: null, left: { year: s.year, cause: s.cause } },
+      { ...elected, name: s.successor, began: s.year, party: s.party, dayOneApproval: null, electedIn: null,
+        tookOver: { from: s.president, cause: s.cause } },
+    ];
+  });
   served.push({
-    name: final.name, began: final.termBegan, party: final.party, ideology: final.ideology, event: final.descriptor,
+    name: final.name, began: final.termBegan, end: final.termBegan + 4, party: final.party, ideology: final.ideology, event: final.descriptor,
     dayOneApproval: null, electionDayApproval: null, electedIn: terms.at(-1)?.election ?? null,
   });
 
@@ -63,10 +85,12 @@ export function presidencies(terms: readonly ProfileTerm[], final: FinalPresiden
     const current = list.at(-1);
     if (current?.name === name) {
       current.terms.push(term);
-      current.to = term.began + 4;
+      current.to = term.end;
+      current.left = term.left;
       if (current.parties.at(-1) !== term.party) current.parties.push(term.party);
     } else {
-      list.push({ number: list.length + 1, name, parties: [term.party], from: term.began, to: term.began + 4, terms: [term], alsoServed: [], last: false });
+      list.push({ number: list.length + 1, name, parties: [term.party], from: term.began, to: term.end, terms: [term], alsoServed: [], last: false,
+        ...(term.tookOver && { tookOver: term.tookOver }), ...(term.left && { left: term.left }) });
     }
   }
   list.at(-1)!.last = true;

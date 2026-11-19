@@ -4,7 +4,7 @@
  * true). Deliberately rare.
  *
  * After a bitter primary in a major party whose wings stand far apart, the
- * losing wing's candidate may bolt and run anyway, as Theodore Roosevelt did
+ * losing wing's candidate may split off and run anyway, as Theodore Roosevelt did
  * in 1912. For that one election they are the Third Party's candidate: they
  * run on their own position, and part of their old party's support follows
  * them. At most one spoiler runs in an election.
@@ -15,7 +15,7 @@ import type { Primary } from './primaries';
 import type { Context } from './types';
 
 export interface Spoiler {
-  /** The party they bolted from. */
+  /** The party they split from. */
   party: number;
   name: string;
   /** The position they run on, −10 to 10. */
@@ -30,13 +30,13 @@ export interface Spoiler {
 export const SPOILER_MIN_SUPPORT = 0.15;
 /** ...and wings at least this far apart. */
 export const SPOILER_MIN_DISTANCE = 3;
-/** The chance the loser of such a bitter primary bolts. */
+/** The chance the loser of such a bitter primary splits off. */
 export const SPOILER_CHANCE = 0.2;
 /** The share of the old party's support that follows them: between these. */
 export const SPOILER_SHARE_MIN = 0.25;
 export const SPOILER_SHARE_MAX = 0.45;
 
-/** Whether a loser of this election's primaries bolts, biggest party first. */
+/** Whether a loser of this election's primaries splits off, biggest party first. */
 export function findSpoiler(primaries: readonly Primary[], support: readonly number[], ctx: Context): Spoiler | null {
   const eligible = primaries
     .filter((p) => p.fight === 'bitter' && p.contenders.length === 2 && (support[p.party] ?? 0) >= SPOILER_MIN_SUPPORT &&

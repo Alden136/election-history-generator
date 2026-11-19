@@ -169,7 +169,7 @@ export function RuleSettings({ corrections, midterms, traits, primaries, running
             </label>
             <label className="rule-row" data-disabled={!(withTraits && withPrimaries) || undefined}>
               <span><strong>Spoiler candidates</strong><small id="rule-spoilers">Rarely, the loser of a bitter primary in a big
-                party bolts and runs anyway as the Third Party's candidate, taking part of their old party's support with them,
+                party splits off and runs anyway as the Third Party's candidate, taking part of their old party's support with them,
                 as Theodore Roosevelt did in 1912. Expect two or three in a timeline. Needs primaries. On by default; switch this
                 off to match the spreadsheet.</small></span>
               <input type="checkbox" role="switch" checked={withTraits && withPrimaries && withSpoilers} disabled={!(withTraits && withPrimaries)}

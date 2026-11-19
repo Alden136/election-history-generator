@@ -269,7 +269,7 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
       </div>
       <h3><PresidentLink name={term.winnerName} began={winnerBegan} /></h3>
       {pvLeader !== null && pvLeader !== term.winnerParty && <p className="winner-split">Lost the popular vote to {partyName(pvLeader)}</p>}
-      {term.spoiler && term.winnerParty === P.THIRD && <p className="winner-split">Spoiler · bolted from {partyName(term.spoiler.party)}</p>}
+      {term.spoiler && term.winnerParty === P.THIRD && <p className="winner-split">Spoiler · split from {partyName(term.spoiler.party)}</p>}
       <p className="winner-ideology">{ideologyLabel(winnerIdeology)} <span>{signed(winnerIdeology)}</span></p>
       {/* Each tag shows a pop-up with the trait's effect on hover, or on focus for keyboards and touch. */}
       {winnerNominee && <p className="winner-traits" aria-label="Candidate traits">
@@ -300,7 +300,7 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
             <th scope="row"><PartyLink party={party.index} />{nomineeOf(party.index) && <small className="nominee"
               title={nomineeTitle(nomineeOf(party.index)!, mateOf(party.index))}>{nomineeOf(party.index)!.name}
               {mateOf(party.index) && ` / ${mateOf(party.index)!.name}`}</small>}
-            {term.spoiler && party.index === P.THIRD && <small className="nominee spoiler-note">Bolted from {partyName(term.spoiler.party)}</small>}</th>
+            {term.spoiler && party.index === P.THIRD && <small className="nominee spoiler-note">Split from {partyName(term.spoiler.party)}</small>}</th>
             <td>{percent(party.electoral)}</td>
             {/* The hover text sits on the cell: this table styles any span as a faint sub-label. */}
             <td title={party.popular === null || display === 'percent' ? undefined

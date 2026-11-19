@@ -945,4 +945,4 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 
 /* Spoiler candidates */
 .results-table th .spoiler-note { color: var(--accent); font-weight: 700; }
-.primary-name small.primary-bolted { color: var(--accent); }
+.primary-name small.primary-split { color: var(--accent); }

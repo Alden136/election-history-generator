@@ -265,7 +265,7 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   const primaries = primaryRun?.primaries ?? null;
   const appeal = chosen ? supportWithNominees(national.support, chosen) : national.support;
   const afterPrimaries = primaries ? supportAfterPrimaries(appeal, primaries) : appeal;
-  // With spoilers on, now and then a bitter primary's loser bolts and runs as the Third
+  // With spoilers on, now and then a bitter primary's loser splits off and runs as the Third
   // Party's candidate, taking part of their old party's support with them.
   const spoiler = ctx.spoilers && primaries ? findSpoiler(primaries, afterPrimaries, ctx) : null;
   const support = spoiler ? supportWithSpoiler(afterPrimaries, spoiler) : afterPrimaries;

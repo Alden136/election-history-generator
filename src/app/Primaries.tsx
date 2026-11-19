@@ -35,7 +35,7 @@ export function PrimariesPanel({ term }: { term: Term }) {
             {contenders.map((contender) => <li key={contender.name} data-won={contender.won || undefined}
               style={{ '--share': `${Math.round(contender.share * 100)}%` } as CSSProperties}>
               <span className="primary-name">{contender.name}{contender.incumbent && <small>Incumbent</small>}
-                {term.spoiler?.party === primary.party && term.spoiler.name === contender.name && <small className="primary-bolted">Ran as a spoiler</small>}</span>
+                {term.spoiler?.party === primary.party && term.spoiler.name === contender.name && <small className="primary-split">Ran as a spoiler</small>}</span>
               <span className="primary-share">{primary.fight === 'unopposed' ? '' : `${contender.won ? 'Won ' : ''}${Math.round(contender.share * 100)}%`}</span>
               <span className="primary-wing">{primary.fight === 'unopposed' ? 'Renominated, governed at' : `${contender.wing === 'moderate' ? 'Moderate' : 'Ideologue'} wing ·`} {signed(contender.position)}</span>
             </li>)}

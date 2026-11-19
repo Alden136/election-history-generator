@@ -20,7 +20,7 @@ const CRISIS_ELECTIONS: ReadonlySet<number> = new Set([
  * primaries on, the position they won their primary on.
  */
 export function presidentIdeology(party: number, prev: Pick<Term, 'center' | 'ideology'> & Partial<Pick<Term, 'primaries' | 'spoiler'>>): number {
-  // A spoiler who won governs from the position they bolted on.
+  // A spoiler who won governs from the position they split off on.
   if (party === P.THIRD && prev.spoiler) return prev.spoiler.position;
   return nomineePosition(prev.primaries, party) ?? (party === P.THIRD ? prev.center : prev.ideology[party]!);
 }

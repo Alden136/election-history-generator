@@ -343,9 +343,9 @@ export function App() {
     </ProfileLinksContext.Provider>
     </VoteDisplayContext.Provider>
     {rulesOpen && <RuleSettings corrections={corrections} midterms={midterms} traits={traits} primaries={primaries} runningMates={runningMates} popularVote={popularVote} spoilers={spoilers} voteDisplay={voteDisplay}
-      apply={(selected, display, withMidterms, withTraits, withPrimaryRaces, withTickets, withStateVote, withBolters) => {
+      apply={(selected, display, withMidterms, withTraits, withPrimaryRaces, withTickets, withStateVote, withSplits) => {
       navigate({ corrections: selected, midterms: withMidterms, traits: withTraits, primaries: withPrimaryRaces, runningMates: withTickets,
-        popularVote: withStateVote, spoilers: withBolters, ...(withMidterms ? {} : { year: electionYear }) });
+        popularVote: withStateVote, spoilers: withSplits, ...(withMidterms ? {} : { year: electionYear }) });
       setVoteDisplay(display);
       storeVoteDisplay(display);
     }}

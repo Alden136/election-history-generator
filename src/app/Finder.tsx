@@ -6,7 +6,7 @@ import { modifiedDials } from './dials';
 import { collectFinderResults, hasConditions, NO_CONDITIONS, TERRITORIES, TERRITORY_NAMES, type FinderConditions, type FinderMatch } from './timelineFinder';
 import type { FinderMessage, FinderRequest } from './finder.worker';
 import { Party } from './Party';
-import { timelineUrl, type TimelineLocation } from './presentation';
+import { additionLabels, additionsOf, timelineUrl, type TimelineLocation } from './presentation';
 import { PRESET_LABELS } from './RuleSettings';
 
 const AT_LEAST = [0, 1, 2, 3];
@@ -112,7 +112,7 @@ export function Finder({ settings, preset, year, openTimeline }: {
   return <section className="panel batch-panel finder" aria-labelledby="finder-title">
     <div className="history-controls">
       <div><h2 id="finder-title">Timeline finder</h2>
-        <p>{PRESET_LABELS[preset]}{settings.midterms ? ' · Midterms' : ''}{settings.candidateTraits ? ' · Traits' : ''}{settings.primaries ? ' · Primaries' : ''}{settings.runningMates ? ' · Running mates' : ''}{settings.popularVote ? ' · State vote' : ''}{settings.spoilers ? ' · Spoilers' : ''} · {changed ? `${changed} adjusted dials` : 'Default dials'} · Random starting seed</p></div>
+        <p>{[PRESET_LABELS[preset], ...additionLabels(additionsOf(settings))].join(' · ')} · {changed ? `${changed} adjusted dials` : 'Default dials'} · Random starting seed</p></div>
     </div>
     <form className="finder-form" onSubmit={start}>
       <fieldset disabled={running}>
@@ -184,12 +184,7 @@ function FinderResults({ run, year, openTimeline, more }: {
 }) {
   const location = (seed: number): TimelineLocation => ({
     seed, year: run.conditions.winner?.year ?? year, corrections: run.settings.corrections ?? [], dials: run.settings.dials,
-    midterms: run.settings.midterms ?? false,
-    traits: run.settings.candidateTraits ?? false,
-    primaries: run.settings.primaries ?? false,
-    runningMates: run.settings.runningMates ?? false,
-    popularVote: run.settings.popularVote ?? false,
-    spoilers: run.settings.spoilers ?? false,
+    ...additionsOf(run.settings),
   });
   const open = (event: MouseEvent<HTMLAnchorElement>, seed: number) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

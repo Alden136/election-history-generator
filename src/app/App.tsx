@@ -4,7 +4,7 @@ import { simulate } from '../engine/simulate';
 import { Charts } from './Charts';
 import { Congress } from './Congress';
 import { DialSettings } from './DialSettings';
-import { encodeDials, modifiedDials } from './dials';
+import { modifiedDials } from './dials';
 import { downloadTimeline } from './export';
 import { ElectionMap, ElectionResults, TermDetails, YearPicker } from './Election';
 import { Finder } from './Finder';
@@ -13,6 +13,7 @@ import { Icon } from './Icon';
 import { THEME_CHOICES, useTheme, type ThemeChoice } from './theme';
 import { Overview } from './Overview';
 import { PrimariesPanel } from './Primaries';
+import { OtherRulesPanel } from './OtherRules';
 import { Parties, Presidents, ProfileLinksContext } from './People';
 import { Playback } from './Playback';
 import { partyProfiles, presidencies, presidencyAt } from './profiles';
@@ -23,7 +24,7 @@ import { addSaved, loadSaved, locationOf, removeSaved, SAVED_KEY, writeSaved, ty
 import { Statistics } from './Statistics';
 import { StoryPage } from './StoryPage';
 import { PRESET_LABELS, RuleSettings } from './RuleSettings';
-import { additionsText, electionYears, MAX_SEED, parseSeed, presidentialYear, readLocation, timelineUrl, type TimelineLocation } from './presentation';
+import { additionsList, electionYears, joinWords, settingsFor, MAX_SEED, parseSeed, presidentialYear, readLocation, timelineUrl, type TimelineLocation } from './presentation';
 import { MidtermResults } from './Midterm';
 import { midtermSummary } from './midtermView';
 import './styles.css';
@@ -48,11 +49,7 @@ type HistoryTab = typeof historyTabs[number]['id'];
 
 export function App() {
   const [location, setLocation] = useState(() => readLocation(window.location.search));
-  const { seed, year, corrections, dials, midterms, traits, primaries, runningMates, popularVote, spoilers } = location;
-  // Primaries and running mates only run with candidate traits on.
-  const withPrimaries = traits && primaries;
-  const withRunningMates = traits && runningMates;
-  const withSpoilers = withPrimaries && spoilers;
+  const { seed, year, corrections, dials, midterms } = location;
   const [playing, setPlaying] = useState(false);
   const [dialsOpen, setDialsOpen] = useState(false);
   const dialsButton = useRef<HTMLButtonElement>(null);
@@ -77,13 +74,15 @@ export function App() {
   const shareTimer = useRef<number | undefined>(undefined);
   const shareRequest = useRef(0);
   const main = useRef<HTMLElement>(null);
-  const settings = useMemo(() => ({ dials, corrections, midterms, candidateTraits: traits, primaries: withPrimaries, runningMates: withRunningMates, popularVote, spoilers: withSpoilers }),
-    [dials, corrections, midterms, traits, withPrimaries, withRunningMates, popularVote, withSpoilers]);
+  // Everything that decides the timeline except the year, as one key: the seed, rules, dials and additions.
+  const timelineKey = timelineUrl('https://timeline.invalid/', { ...location, year: 0 }).search;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const settings = useMemo(() => settingsFor(location), [timelineKey]);
   const timeline = useMemo(() => simulate(seed, settings), [seed, settings]);
   const adjusted = modifiedDials(dials).length;
-  const timelineKey = `${seed}/${corrections.join(',')}/${encodeDials(dials)}/${midterms ? 'midterms' : ''}/${traits ? 'traits' : ''}/${withPrimaries ? 'primaries' : ''}/${withRunningMates ? 'vp' : ''}/${popularVote ? 'pv' : ''}/${withSpoilers ? 'spoilers' : ''}`;
-  const additions = additionsText(midterms, traits, primaries, runningMates, popularVote, spoilers);
-  const additionCount = Number(midterms) + Number(traits) + Number(withPrimaries) + Number(withRunningMates) + Number(popularVote) + Number(withSpoilers);
+  const additionWords = additionsList(location);
+  const additions = joinWords(additionWords);
+  const additionCount = additionWords.length;
   // A midterm year shows the Congress elected then; everything else follows the presidential election before it.
   const electionYear = presidentialYear(year);
   const isMidterm = year !== electionYear;
@@ -314,6 +313,7 @@ export function App() {
             </>}
         </div>
         {!isMidterm && <PrimariesPanel term={term} />}
+        {!isMidterm && <OtherRulesPanel timeline={timeline} term={term} />}
         <Overview timeline={timeline} openElection={openElection} />
         <Congress term={term} court={timeline.terms[term.index + 1]?.court} caption={caption}
           midterms={midterms} midterm={timeline.terms[term.index + 1]?.midterm} showMidterm={isMidterm} openYear={chooseYear} />
@@ -342,10 +342,9 @@ export function App() {
     </main>
     </ProfileLinksContext.Provider>
     </VoteDisplayContext.Provider>
-    {rulesOpen && <RuleSettings corrections={corrections} midterms={midterms} traits={traits} primaries={primaries} runningMates={runningMates} popularVote={popularVote} spoilers={spoilers} voteDisplay={voteDisplay}
-      apply={(selected, display, withMidterms, withTraits, withPrimaryRaces, withTickets, withStateVote, withSplits) => {
-      navigate({ corrections: selected, midterms: withMidterms, traits: withTraits, primaries: withPrimaryRaces, runningMates: withTickets,
-        popularVote: withStateVote, spoilers: withSplits, ...(withMidterms ? {} : { year: electionYear }) });
+    {rulesOpen && <RuleSettings corrections={corrections} additions={location} voteDisplay={voteDisplay}
+      apply={(selected, display, additions) => {
+      navigate({ corrections: selected, ...additions, ...(additions.midterms ? {} : { year: electionYear }) });
       setVoteDisplay(display);
       storeVoteDisplay(display);
     }}

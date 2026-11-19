@@ -4,6 +4,7 @@ import { NO_VOTE, SECEDED, type Term } from '../engine/types';
 import { Icon } from './Icon';
 import { Dot } from './Party';
 import { PartyLink } from './People';
+import { faithlessText, recountText } from './electionNotes';
 import { approximateCount, NO_VOTE_COLOR, PARTY_COLORS, percent, SECEDED_COLOR, signed, stateVotes, stateVoteText } from './presentation';
 import { stateHistory, stateStory, yearRange, type StateResult } from './stateHistory';
 
@@ -61,7 +62,9 @@ export function StatePanel({ terms, state, year, chooseYear, close }: {
     <dl className="state-stats">
       <div><dt className="eyebrow">In {year}</dt>
         <dd>{now.winner >= 0 ? <PartyLink party={now.winner} /> : outcome(now)}</dd><small>{nowDetail}</small>
-        {voteText && <small className="state-vote">{voteText}</small>}</div>
+        {voteText && <small className="state-vote">{voteText}</small>}
+        {voteTerm && recountText(voteTerm, state) && <small className="state-vote">{recountText(voteTerm, state)}</small>}
+        {voteTerm && faithlessText(voteTerm, state) && <small className="state-vote">{faithlessText(voteTerm, state)}</small>}</div>
       <div><dt className="eyebrow">First voted</dt>
         <dd>{history.firstVote ?? 'Never'}</dd><small>Voted in {history.voted} of {elections(results.length)}</small></div>
       <div><dt className="eyebrow">Backed the winner so far</dt>

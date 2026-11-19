@@ -3,14 +3,17 @@ import { BLOC_NAMES, PARTIES } from '../engine/data';
 import type { Term } from '../engine/types';
 import { BLOC_COLORS, ideologyChartBounds, PARTY_COLORS, percent, signed } from './presentation';
 
-type Metric = 'support' | 'electoral' | 'congress' | 'blocShares' | 'shownIdeology';
+type Metric = 'support' | 'electoral' | 'congress' | 'blocShares' | 'shownIdeology' | 'turnout';
 const metrics = [
   { id: 'support', label: 'Party support' },
   { id: 'electoral', label: 'Electoral College' },
   { id: 'congress', label: 'Congress' },
   { id: 'blocShares', label: 'Ideology blocs' },
   { id: 'shownIdeology', label: 'Party ideology' },
+  { id: 'turnout', label: 'Turnout' },
 ] as const;
+/** Short names for the widenings of the vote, marked on the turnout chart. */
+const SUFFRAGE_MARKS: Record<number, string> = { 1872: 'Black men', 1920: 'Women', 1968: 'Voting Rights Act', 1972: '18-year-olds' };
 const xTicks = [1792, 1840, 1880, 1920, 1960, 2000, 2040, 2064];
 const width = 1120;
 const height = 330;
@@ -22,22 +25,31 @@ const bottom = height - 42;
 export function Charts({ terms, year, chooseYear }: {
   terms: readonly Term[]; year: number; chooseYear: (year: number) => void;
 }) {
-  const [metric, setMetric] = useState<Metric>('support');
+  const [chosenMetric, setMetric] = useState<Metric>('support');
+  // Turnout is charted only when the turnout addition is on.
+  const hasTurnout = terms.some((term) => term.turnout);
+  const shownMetrics = metrics.filter((item) => item.id !== 'turnout' || hasTurnout);
+  const metric: Metric = chosenMetric === 'turnout' && !hasTurnout ? 'support' : chosenMetric;
+  const isTurnout = metric === 'turnout';
+  /** A series value: bloc turnout, the whole electorate's (the last series), or the metric's entry. NaN where there is none. */
+  const valueOf = (term: Term, i: number): number => isTurnout
+    ? (i === BLOC_NAMES.length ? term.turnout?.overall : term.turnout?.blocs[i]) ?? NaN
+    : term[metric][i]!;
   const [hoverYear, setHoverYear] = useState<number | null>(null);
   const [hidden, setHidden] = useState<Partial<Record<Metric, Set<number>>>>({});
   // A series the pointer or keyboard is on, and one the user clicked to keep highlighted.
   const [hovered, setHovered] = useState<number | null>(null);
   const [pinned, setPinned] = useState<number | null>(null);
-  const names = metric === 'blocShares' ? BLOC_NAMES : PARTIES.map((party) => party.name);
-  const colors = metric === 'blocShares' ? BLOC_COLORS : PARTY_COLORS;
+  const names = isTurnout ? [...BLOC_NAMES, 'All voters'] : metric === 'blocShares' ? BLOC_NAMES : PARTIES.map((party) => party.name);
+  const colors = isTurnout ? [...BLOC_COLORS, 'var(--text)'] : metric === 'blocShares' ? BLOC_COLORS : PARTY_COLORS;
   const hiddenSeries = hidden[metric];
   const current = terms.find((term) => term.election === (hoverYear ?? year))!;
-  const label = metrics.find((item) => item.id === metric)!.label;
+  const label = shownMetrics.find((item) => item.id === metric)!.label;
   const first = terms[0]!.election;
   const last = terms.at(-1)!.election;
-  const series = names.map((name, i) => ({ name, i, color: colors[i]!, values: terms.map((term) => term[metric][i]!) }));
+  const series = names.map((name, i) => ({ name, i, color: colors[i]!, values: terms.map((term) => valueOf(term, i)) }));
   const active = series.filter(({ i, values }) => !hiddenSeries?.has(i) && values.some((value) => Math.abs(value) > 1e-9));
-  const values = active.flatMap((line) => line.values);
+  const values = active.flatMap((line) => line.values).filter(Number.isFinite);
   const isIdeology = metric === 'shownIdeology';
   const step = isIdeology ? 5 : 0.2;
   const { min, max } = isIdeology ? ideologyChartBounds(values) : {
@@ -47,8 +59,8 @@ export function Charts({ terms, year, chooseYear }: {
   const x = (value: number) => left + (value - first) / (last - first) * (right - left);
   const y = (value: number) => bottom - (value - min) / (max - min) * (bottom - top);
   const yTicks = Array.from({ length: Math.round((max - min) / step) + 1 }, (_, i) => min + i * step);
-  const ranking = [...active].sort((a, b) => current[metric][b.i]! - current[metric][a.i]!);
-  const isBlocs = metric === 'blocShares';
+  const ranking = [...active].sort((a, b) => (valueOf(current, b.i) || 0) - (valueOf(current, a.i) || 0));
+  const isBlocs = metric === 'blocShares' || isTurnout;
   const highlight = [hovered, pinned].find((i) => i !== null && active.some((line) => line.i === i)) ?? null;
   // Draw the highlighted line last so it sits on top of the others.
   const drawOrder = highlight === null ? active : [...active.filter((l) => l.i !== highlight), ...active.filter((l) => l.i === highlight)];
@@ -81,7 +93,7 @@ export function Charts({ terms, year, chooseYear }: {
     <div className="history-controls">
       <div><h2 id="charts-title">Trends over time</h2><p>{first}–{last}</p></div>
       <div className="segmented" role="group" aria-label="Chart metric">
-        {metrics.map((item) => <button key={item.id} type="button" aria-pressed={metric === item.id}
+        {shownMetrics.map((item) => <button key={item.id} type="button" aria-pressed={metric === item.id}
           onClick={() => { setMetric(item.id); setHoverYear(null); setHovered(null); }}>{item.label}</button>)}
       </div>
     </div>
@@ -97,10 +109,13 @@ export function Charts({ terms, year, chooseYear }: {
           {xTicks.map((tick) => <g key={tick}><line x1={x(tick)} x2={x(tick)} y1={top} y2={bottom} />
             <text x={x(tick)} y={height - 12} textAnchor="middle">{tick}</text></g>)}
           {drawOrder.map((line) => <polyline key={line.name} className={seriesClass(line.i)} fill="none" stroke={line.color}
-            points={line.values.map((value, i) => `${x(terms[i]!.election)},${y(value)}`).join(' ')} />)}
+            points={line.values.flatMap((value, i) => (Number.isFinite(value) ? [`${x(terms[i]!.election)},${y(value)}`] : [])).join(' ')} />)}
+          {isTurnout && Object.entries(SUFFRAGE_MARKS).map(([at, mark]) => <g key={at} className="chart-mark">
+            <line x1={x(Number(at))} x2={x(Number(at))} y1={top} y2={bottom} />
+            <text x={x(Number(at)) + 4} y={top + 12 + (Number(at) === 1972 ? 14 : 0)}>{mark}</text></g>)}
           <line className="chart-cursor" x1={x(current.election)} x2={x(current.election)} y1={top} y2={bottom} />
-          {drawOrder.map((line) => <circle key={line.name} className={seriesClass(line.i)} cx={x(current.election)}
-            cy={y(current[metric][line.i]!)} r={line.i === highlight ? 5 : 4} fill={line.color} />)}
+          {drawOrder.filter((line) => Number.isFinite(valueOf(current, line.i))).map((line) => <circle key={line.name} className={seriesClass(line.i)} cx={x(current.election)}
+            cy={y(valueOf(current, line.i))} r={line.i === highlight ? 5 : 4} fill={line.color} />)}
         </svg>
         <label className="chart-year">Election year <input type="range" min={first} max={last} step={4} value={year}
           onChange={(event) => { chooseYear(Number(event.target.value)); setHoverYear(null); }} /><output>{year}</output></label>
@@ -124,7 +139,7 @@ export function Charts({ terms, year, chooseYear }: {
             onClick={() => togglePin(line.i)} onPointerEnter={() => setHovered(line.i)}
             onFocus={() => setHovered(line.i)} onBlur={() => setHovered(null)}>
             <span className="dot" style={{ backgroundColor: line.color }} /><span>{line.name}</span>
-            <strong>{isIdeology ? signed(current[metric][line.i]!) : percent(current[metric][line.i]!)}</strong>
+            <strong>{!Number.isFinite(valueOf(current, line.i)) ? '—' : isIdeology ? signed(valueOf(current, line.i)) : percent(valueOf(current, line.i))}</strong>
           </button>
         </li>)}</ul> : <p className="muted">No active series selected.</p>}
       </div>

@@ -8,7 +8,7 @@ import type { Primary } from '../src/engine/primaries';
 import { additionsText, readLocation, timelineUrl } from '../src/app/presentation';
 import { writeStory } from '../src/app/story';
 
-const ON = { ...CORRECTED_SETTINGS, midterms: true, candidateTraits: true, primaries: true, runningMates: true, popularVote: true, spoilers: true };
+const ON = { ...CORRECTED_SETTINGS, midterms: true, candidateTraits: true, primaries: true, runningMates: true, popularVote: true, spoilers: true, recounts: true, faithless: true, turnout: true, electorRule: 'winner-take-all' as const };
 
 const contender = (name: string, position: number, wing: 'moderate' | 'ideologue') =>
   ({ name, home: null, charisma: 0, experience: 1, position, wing, incumbent: false });
@@ -19,7 +19,7 @@ const bitter = (party: number, apart: number): Primary => ({
 
 describe('spoiler candidates', () => {
   it('are off unless asked for, and need primaries', () => {
-    for (const settings of [CORRECTED_SETTINGS, { ...CORRECTED_SETTINGS, candidateTraits: true, spoilers: true }]) {
+    for (const settings of [CORRECTED_SETTINGS, { ...CORRECTED_SETTINGS, candidateTraits: true, spoilers: true, recounts: true, faithless: true, turnout: true, electorRule: 'winner-take-all' as const }]) {
       const timeline = simulate(42, settings);
       expect(timeline.spoilers).toBe(false);
       expect(timeline.terms.every((term) => term.spoiler === null)).toBe(true);
@@ -84,7 +84,7 @@ describe('spoiler candidates', () => {
     expect(text).toContain(`${s.name} lost the`);
     expect(readLocation('?seed=3&year=1900').spoilers).toBe(true);
     const base = { seed: 3, year: 1900, corrections: RULES, dials: DEFAULT_DIALS, midterms: true, traits: true, primaries: true, runningMates: true, popularVote: true };
-    const off = timelineUrl('https://example.test/', { ...base, spoilers: false });
+    const off = timelineUrl('https://example.test/', { ...base, spoilers: false, recounts: false, faithless: false, turnout: false, electorRule: 'winner-take-all' as const });
     expect(off.searchParams.get('spoilers')).toBe('0');
     expect(readLocation(off.search).spoilers).toBe(false);
     expect(additionsText(false, true, true, false, false, true)).toBe('candidate traits, primaries and spoiler candidates');

@@ -946,3 +946,18 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 /* Spoiler candidates */
 .results-table th .spoiler-note { color: var(--accent); font-weight: 700; }
 .primary-name small.primary-split { color: var(--accent); }
+
+/* Recounts, faithless electors and other elector rules */
+.results-note { margin: 0; padding: 8px 15px; border-top: 1px solid var(--hair); color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.45; }
+.other-rules { margin-top: 18px; }
+.other-rules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin: 0; padding: 0; list-style: none; }
+.other-rules-grid li { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 14px; border-right: 1px solid var(--hair); border-bottom: 1px solid var(--hair); }
+.other-rules-grid li[data-current] { box-shadow: inset 0 4px 0 var(--accent); }
+.other-rules-grid li[data-differs] strong { text-decoration: underline 2px var(--accent); text-underline-offset: 4px; }
+.other-rules-grid strong { font-size: 15px; font-weight: 800; }
+.other-rules-grid small { color: var(--muted); font: 500 11px var(--mono); }
+.other-rules-note { margin: 0; padding: 9px 14px 11px; color: var(--muted); font-size: 11px; font-weight: 600; }
+.rule-choice select { flex: none; max-width: 190px; min-height: 34px; padding: 3px 6px; border: 2px solid var(--line); background: var(--field); color: var(--text); font: 600 12px var(--mono); }
+
+.plot .chart-mark line { stroke: var(--accent); stroke-dasharray: 2 4; }
+.plot .chart-mark text { fill: var(--accent); font: 600 11px var(--mono); }

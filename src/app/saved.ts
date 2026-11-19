@@ -5,7 +5,7 @@
  */
 import { rulePreset } from '../engine/rules';
 import { modifiedDials } from './dials';
-import { readLocation, timelineUrl, type TimelineLocation } from './presentation';
+import { additionLabels, readLocation, timelineUrl, type TimelineLocation } from './presentation';
 import { PRESET_LABELS } from './RuleSettings';
 
 export const SAVED_KEY = 'election-saved-timelines';
@@ -78,9 +78,10 @@ export function suggestedName({ seed, year }: TimelineLocation): string {
 
 /** "Seed 42 · 2024 · Corrected · 2 dials adjusted" */
 export function describeSaved(saved: SavedTimeline): string {
-  const { seed, year, corrections, dials, midterms, traits, primaries, runningMates, popularVote, spoilers } = locationOf(saved);
+  const location = locationOf(saved);
+  const { seed, year, corrections, dials } = location;
   const adjusted = modifiedDials(dials).length;
-  return [`Seed ${seed}`, String(year), PRESET_LABELS[rulePreset(corrections)], ...(midterms ? ['Midterms'] : []), ...(traits ? ['Traits'] : []), ...(traits && primaries ? ['Primaries'] : []), ...(traits && runningMates ? ['Running mates'] : []), ...(popularVote ? ['State vote'] : []), ...(traits && primaries && spoilers ? ['Spoilers'] : []),
+  return [`Seed ${seed}`, String(year), PRESET_LABELS[rulePreset(corrections)], ...additionLabels(location),
     ...(adjusted ? [`${adjusted} ${adjusted === 1 ? 'dial' : 'dials'} adjusted`] : [])].join(' · ');
 }
 

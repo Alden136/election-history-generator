@@ -5,7 +5,7 @@
  * the same text and the story never claims something the timeline does not show.
  * Display only; nothing here feeds back into the simulation.
  */
-import { P, partyName } from '../engine/data';
+import { P, partyName, STATES } from '../engine/data';
 import type { Timeline } from '../engine/simulate';
 import type { Succession } from '../engine/succession';
 import { SECEDED, type Expansions, type Term } from '../engine/types';
@@ -32,6 +32,10 @@ export interface ChapterFacts {
   popularLosers: { election: number; name: string; party: number }[];
   /** Primary losers who ran anyway as the Third Party's candidate (spoiler candidates addition). */
   spoilers: { election: number; name: string; party: number; won: boolean; partyLost: boolean }[];
+  /** Elections whose result was contested after a recount, with the closest recounted state (recounts addition). */
+  contested: { election: number; state: string }[];
+  /** Widenings of the vote first in force in this chapter (turnout addition). */
+  suffrage: { election: number; label: string }[];
   /** The winner's largest and smallest Electoral College share, among elections decided by the voters. */
   landslide: { election: number; name: string; party: number; share: number } | null;
   closest: { election: number; name: string; party: number; share: number } | null;
@@ -147,6 +151,9 @@ export function chapterFacts(timeline: Timeline, chapter: number): ChapterFacts 
     elections: electionRows.map((t) => t.election),
     changes: electionRows.filter((t) => t.index > 0 && t.result === 'LOSS').map((t) => t.election),
     contingent: electionRows.filter((t) => t.index > 0 && Math.max(...t.electoral) <= 0.5).map((t) => t.election),
+    contested: electionRows.filter((t) => t.contested).map((t) => ({ election: t.election,
+      state: STATES[[...t.grid.recounts!].sort((a, b) => a.margin - b.margin)[0]!.state]!.name })),
+    suffrage: electionRows.flatMap((t) => (t.suffrage ? [{ election: t.election, label: t.suffrage.label }] : [])),
     popularLosers: decidedByVoters.filter((t) => t.popularVote && t.popularVote.indexOf(Math.max(...t.popularVote)) !== t.winnerParty)
       .map((t) => ({ election: t.election, name: t.winnerName, party: t.winnerParty })),
     spoilers: electionRows.filter((t) => t.spoiler).map((t) => ({ election: t.election, name: t.spoiler!.name, party: t.spoiler!.party,
@@ -281,6 +288,12 @@ function elections(facts: ChapterFacts): string | null {
   }
   if (facts.contingent.length) {
     sentences.push(`No party won a majority of the Electoral College in ${list(facts.contingent.map(String))}, so Congress chose the president.`);
+  }
+  for (const c of facts.contested) {
+    sentences.push(`The ${c.election} result was contested after a recount in ${c.state}, and the new president took office under a cloud.`);
+  }
+  for (const s of facts.suffrage) {
+    sentences.push(`${s.label}, so more people could vote from ${s.election} on.`);
   }
   for (const s of facts.spoilers) {
     sentences.push(s.won

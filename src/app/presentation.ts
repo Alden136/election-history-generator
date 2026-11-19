@@ -1,7 +1,8 @@
 import { ELECTIONS, PARTIES, STATES } from '../engine/data';
 import turnout from '../../data/turnout.json';
 import { RULES, type Rule } from '../engine/rules';
-import type { Dials, Term } from '../engine/types';
+import type { Dials, Settings, Term } from '../engine/types';
+import { ELECTOR_RULES, type ElectorRule } from '../engine/electorRules';
 import { CHARISMA_STEP, EXPERIENCE_STEP, HOME_STATE_BONUS, INCUMBENT_EDGE, type Nominee } from '../engine/candidates';
 import type { Fight, Primary, Wing } from '../engine/primaries';
 import type { Departure, Succession } from '../engine/succession';
@@ -29,23 +30,44 @@ export const electionYears = (midterms: boolean): readonly number[] => (midterms
 /** The presidential election a year belongs to: itself, or the one two years before a midterm. */
 export const presidentialYear = (year: number) => (isMidtermYear(year) ? year - 2 : year);
 
-export interface TimelineLocation {
+/**
+ * The additions: features the spreadsheet does not have. Each switch is on
+ * unless the link turns it off with its parameter set to 0, and the elector
+ * rule is winner-take-all unless the link names another.
+ */
+export interface Additions {
+  midterms: boolean;
+  traits: boolean;
+  /** Needs traits. */
+  primaries: boolean;
+  /** Needs traits. */
+  runningMates: boolean;
+  popularVote: boolean;
+  /** Needs primaries. */
+  spoilers: boolean;
+  /** Needs the state popular vote. */
+  recounts: boolean;
+  /** Needs the state popular vote. */
+  faithless: boolean;
+  turnout: boolean;
+  /** Anything but winner-take-all needs the state popular vote. */
+  electorRule: ElectorRule;
+}
+
+/** Each on/off addition and the link parameter that switches it off. */
+export const ADDITION_PARAMS = {
+  midterms: 'midterms', traits: 'traits', primaries: 'primaries', runningMates: 'vp', popularVote: 'pv',
+  spoilers: 'spoilers', recounts: 'recounts', faithless: 'faithless', turnout: 'turnout',
+} as const satisfies Record<Exclude<keyof Additions, 'electorRule'>, string>;
+export type AdditionSwitch = keyof typeof ADDITION_PARAMS;
+export const ADDITION_SWITCHES = Object.keys(ADDITION_PARAMS) as AdditionSwitch[];
+const WTA: ElectorRule = 'winner-take-all';
+
+export interface TimelineLocation extends Additions {
   seed: number;
   year: number;
   corrections: readonly Rule[];
   dials: Dials;
-  /** Midterm elections, an addition that is on unless the link says midterms=0. */
-  midterms: boolean;
-  /** Candidate traits, an addition that is on unless the link says traits=0. */
-  traits: boolean;
-  /** Primaries, an addition that is on unless the link says primaries=0. They only run with candidate traits on. */
-  primaries: boolean;
-  /** Running mates and succession, an addition that is on unless the link says vp=0. They only run with candidate traits on. */
-  runningMates: boolean;
-  /** The state-by-state popular vote, an addition that is on unless the link says pv=0. */
-  popularVote: boolean;
-  /** Spoiler candidates, an addition that is on unless the link says spoilers=0. They only run with primaries on. */
-  spoilers: boolean;
 }
 
 export function readLocation(search: string): TimelineLocation {
@@ -55,23 +77,21 @@ export function readLocation(search: string): TimelineLocation {
   // No rules in the address means the default, Corrected; Faithful is written as rules=none.
   const rules = params.get('rules');
   const selected = new Set(rules === null ? RULES : rules.split(','));
-  const midterms = params.get('midterms') !== '0';
+  const switches = Object.fromEntries(ADDITION_SWITCHES.map((key) => [key, params.get(ADDITION_PARAMS[key]) !== '0'])) as Record<AdditionSwitch, boolean>;
+  const electors = params.get('electors');
   return {
     seed: seed ?? DEFAULT_SEED,
     // A midterm year opens that midterm when midterms are on, or the election before it when they are off.
-    year: ELECTIONS.includes(year) || (midterms && isMidtermYear(year)) ? year : isMidtermYear(year) ? year - 2 : DEFAULT_YEAR,
+    year: ELECTIONS.includes(year) || (switches.midterms && isMidtermYear(year)) ? year : isMidtermYear(year) ? year - 2 : DEFAULT_YEAR,
     corrections: RULES.filter((rule) => selected.has(rule)),
     dials: parseDials(params.get('dials')),
-    midterms,
-    traits: params.get('traits') !== '0',
-    primaries: params.get('primaries') !== '0',
-    runningMates: params.get('vp') !== '0',
-    popularVote: params.get('pv') !== '0',
-    spoilers: params.get('spoilers') !== '0',
+    ...switches,
+    electorRule: ELECTOR_RULES.includes(electors as ElectorRule) ? electors as ElectorRule : WTA,
   };
 }
 
-export function timelineUrl(href: string, { seed, year, corrections, dials, midterms, traits, primaries, runningMates, popularVote, spoilers }: TimelineLocation): URL {
+export function timelineUrl(href: string, location: TimelineLocation): URL {
+  const { seed, year, corrections, dials, electorRule } = location;
   const url = new URL(href);
   url.searchParams.set('seed', String(seed));
   url.searchParams.set('year', String(year));
@@ -82,20 +102,77 @@ export function timelineUrl(href: string, { seed, year, corrections, dials, midt
   if (adjusted) url.searchParams.set('dials', adjusted);
   else url.searchParams.delete('dials');
   // On is the default, so only "off" is written into the link.
-  if (midterms) url.searchParams.delete('midterms');
-  else url.searchParams.set('midterms', '0');
-  if (traits) url.searchParams.delete('traits');
-  else url.searchParams.set('traits', '0');
-  if (primaries) url.searchParams.delete('primaries');
-  else url.searchParams.set('primaries', '0');
-  if (runningMates) url.searchParams.delete('vp');
-  else url.searchParams.set('vp', '0');
-  if (popularVote) url.searchParams.delete('pv');
-  else url.searchParams.set('pv', '0');
-  if (spoilers) url.searchParams.delete('spoilers');
-  else url.searchParams.set('spoilers', '0');
+  for (const key of ADDITION_SWITCHES) {
+    if (location[key]) url.searchParams.delete(ADDITION_PARAMS[key]);
+    else url.searchParams.set(ADDITION_PARAMS[key], '0');
+  }
+  if (electorRule === WTA) url.searchParams.delete('electors');
+  else url.searchParams.set('electors', electorRule);
   return url;
 }
+
+/** The additions that actually run: some need others switched on. */
+export function activeAdditions(a: Additions): Additions {
+  const primaries = a.traits && a.primaries;
+  return {
+    midterms: a.midterms, traits: a.traits, primaries, runningMates: a.traits && a.runningMates, popularVote: a.popularVote,
+    spoilers: primaries && a.spoilers, recounts: a.popularVote && a.recounts, faithless: a.popularVote && a.faithless,
+    turnout: a.turnout, electorRule: a.popularVote ? a.electorRule : WTA,
+  };
+}
+
+/** The simulation settings for a timeline. */
+export function settingsFor({ dials, corrections, ...rest }: TimelineLocation): Settings {
+  const a = activeAdditions(rest);
+  return {
+    dials, corrections, midterms: a.midterms, candidateTraits: a.traits, primaries: a.primaries, runningMates: a.runningMates,
+    popularVote: a.popularVote, spoilers: a.spoilers, recounts: a.recounts, faithless: a.faithless, turnout: a.turnout, electorRule: a.electorRule,
+  };
+}
+
+/** The additions back from simulation settings, as the Finder ran them. */
+export function additionsOf(settings: Settings): Additions {
+  return {
+    midterms: settings.midterms ?? false, traits: settings.candidateTraits ?? false, primaries: settings.primaries ?? false,
+    runningMates: settings.runningMates ?? false, popularVote: settings.popularVote ?? false, spoilers: settings.spoilers ?? false,
+    recounts: settings.recounts ?? false, faithless: settings.faithless ?? false, turnout: settings.turnout ?? false,
+    electorRule: settings.electorRule ?? WTA,
+  };
+}
+
+/** How each elector rule reads in a sentence and as a short label. */
+export const ELECTOR_RULE_WORDS: Record<ElectorRule, string> = {
+  'winner-take-all': 'winner-take-all electors', district: 'electors by district', proportional: 'proportional electors',
+  national: 'a national popular vote for president',
+};
+export const ELECTOR_RULE_LABELS: Record<ElectorRule, string> = {
+  'winner-take-all': 'Winner-take-all', district: 'By district', proportional: 'Proportional', national: 'National popular vote',
+};
+
+/** The additions that run, in words: "midterm elections", "candidate traits" and so on. */
+export function additionsList(additions: Additions): string[] {
+  const a = activeAdditions(additions);
+  return [
+    a.midterms && 'midterm elections', a.traits && 'candidate traits', a.primaries && 'primaries', a.runningMates && 'running mates',
+    a.popularVote && 'a state popular vote', a.spoilers && 'spoiler candidates', a.recounts && 'recounts',
+    a.faithless && 'faithless electors', a.turnout && 'turnout',
+    a.electorRule !== WTA && ELECTOR_RULE_WORDS[a.electorRule],
+  ].filter((item): item is string => Boolean(item));
+}
+
+/** The additions that run, as short labels for saved timelines and the Finder. */
+export function additionLabels(additions: Additions): string[] {
+  const a = activeAdditions(additions);
+  return [
+    a.midterms && 'Midterms', a.traits && 'Traits', a.primaries && 'Primaries', a.runningMates && 'Running mates',
+    a.popularVote && 'State vote', a.spoilers && 'Spoilers', a.recounts && 'Recounts', a.faithless && 'Faithless',
+    a.turnout && 'Turnout', a.electorRule !== WTA && ELECTOR_RULE_LABELS[a.electorRule],
+  ].filter((item): item is string => Boolean(item));
+}
+
+/** "a, b and c". */
+export const joinWords = (items: readonly string[]) =>
+  items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}` : items.join('');
 
 /** Party colors, deep enough to read on the concrete-grey page. Same hues as before. */
 export const PARTY_COLORS = [
@@ -186,11 +263,9 @@ export function approximateCount(votes: number): string {
   return rounded.toLocaleString('en-US');
 }
 
-/** The additions switched on, in words: "midterm elections, candidate traits and primaries". Primaries and running mates count only with traits. */
+/** The first six additions in words, for callers that name them one by one. */
 export function additionsText(midterms: boolean, traits: boolean, primaries = false, runningMates = false, popularVote = false, spoilers = false): string {
-  const on = [midterms && 'midterm elections', traits && 'candidate traits', traits && primaries && 'primaries', traits && runningMates && 'running mates',
-    popularVote && 'a state popular vote', traits && primaries && spoilers && 'spoiler candidates'].filter((item): item is string => Boolean(item));
-  return on.length > 1 ? `${on.slice(0, -1).join(', ')} and ${on.at(-1)}` : on.join('');
+  return joinWords(additionsList({ midterms, traits, primaries, runningMates, popularVote, spoilers, recounts: false, faithless: false, turnout: false, electorRule: WTA }));
 }
 
 /** Candidate traits in words. */

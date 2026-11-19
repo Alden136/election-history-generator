@@ -114,7 +114,7 @@ describe('running mates and succession in the app', () => {
 
   it('are on by default and travel in share links as vp=0 when off', () => {
     expect(readLocation('?seed=3&year=1900').runningMates).toBe(true);
-    const base = { seed: 3, year: 1900, corrections: RULES, dials: DEFAULT_DIALS, midterms: true, traits: true, primaries: true, popularVote: true, spoilers: true };
+    const base = { seed: 3, year: 1900, corrections: RULES, dials: DEFAULT_DIALS, midterms: true, traits: true, primaries: true, popularVote: true, spoilers: true, recounts: true, faithless: true, turnout: true, electorRule: 'winner-take-all' as const };
     const off = timelineUrl('https://example.test/', { ...base, runningMates: false });
     expect(off.searchParams.get('vp')).toBe('0');
     expect(readLocation(off.search).runningMates).toBe(false);

@@ -70,7 +70,7 @@ describe('midterm elections', () => {
 
   it('are on in the app by default, and travel in share links as midterms=0 when off', () => {
     expect(readLocation('?seed=9&year=1900').midterms).toBe(true);
-    const base = { seed: 9, year: 1900, corrections: RULES, dials: DEFAULT_DIALS, traits: true, primaries: true, runningMates: true, popularVote: true, spoilers: true };
+    const base = { seed: 9, year: 1900, corrections: RULES, dials: DEFAULT_DIALS, traits: true, primaries: true, runningMates: true, popularVote: true, spoilers: true, recounts: true, faithless: true, turnout: true, electorRule: 'winner-take-all' as const };
     const off = timelineUrl('https://example.test/', { ...base, midterms: false });
     expect(off.searchParams.get('midterms')).toBe('0');
     expect(readLocation(off.search).midterms).toBe(false);

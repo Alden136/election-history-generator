@@ -12,6 +12,7 @@ import { SaveImageButton } from './SaveImageButton';
 import { useVoteDisplay, type VoteDisplay } from './voteDisplay';
 import { CHARISMA_LABELS, EXPERIENCE_LABELS, popularVoteLeader, stateVoteText, successionText, traitEffects, approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
+import { faithlessSummary, faithlessText, recountText } from './electionNotes';
 import { justiceCount } from './court';
 
 type MapStyle = 'map' | 'tiles';
@@ -191,8 +192,8 @@ export function ElectionMap({ term, selected, select, caption }: {
     `${STATES[i]!.name}: ${stateResult(term, i)}${term.index ? `, ${grid.votes[i]} electoral votes` : ''}`;
   /** Hover text: the state's result, electoral votes and lean (when it has electoral votes). */
   const tooltip = (i: number) => {
-    const vote = stateVoteText(term, i);
-    return `${label(i)}${term.index > 0 && grid.votes[i]! > 0 ? `, lean ${signed(grid.lean[i]!)}` : ''}${vote ? `\n${vote}` : ''}`;
+    const extra = [stateVoteText(term, i), recountText(term, i), faithlessText(term, i)].filter(Boolean);
+    return `${label(i)}${term.index > 0 && grid.votes[i]! > 0 ? `, lean ${signed(grid.lean[i]!)}` : ''}${extra.map((line) => `\n${line}`).join('')}`;
   };
   const handlers = (i: number) => ({
     onMouseEnter: () => setHovered(i), onMouseLeave: () => setHovered(null),
@@ -269,6 +270,7 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
       </div>
       <h3><PresidentLink name={term.winnerName} began={winnerBegan} /></h3>
       {pvLeader !== null && pvLeader !== term.winnerParty && <p className="winner-split">Lost the popular vote to {partyName(pvLeader)}</p>}
+      {term.contested && <p className="winner-split" title="A recount in a state that could have changed the result">Contested result</p>}
       {term.spoiler && term.winnerParty === P.THIRD && <p className="winner-split">Spoiler · split from {partyName(term.spoiler.party)}</p>}
       <p className="winner-ideology">{ideologyLabel(winnerIdeology)} <span>{signed(winnerIdeology)}</span></p>
       {/* Each tag shows a pop-up with the trait's effect on hover, or on focus for keyboards and touch. */}
@@ -279,6 +281,8 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
       </p>}
       {winnerMate && <p className="winner-mate">Running mate <strong>{winnerMate.name}</strong>
         {winnerMate.home && <span> · From {stateName(winnerMate.home)}</span>}</p>}
+      {term.turnout && <p className="winner-mate">Turnout <strong>{percent(term.turnout.overall)}</strong>
+        {term.suffrage && <span> · {term.suffrage.label}</span>}</p>}
       <dl className="winner-stats">
         <div><dt>Electoral votes</dt><dd>{live > 0
           ? <>{Math.round(term.winnerElectoralShare * live)}<small className="winner-of"> of {live}</small></>
@@ -312,6 +316,9 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
         ))}</tbody>
       </table>
     </div>
+    {faithlessSummary(term) && <p className="results-note">Faithless electors: {faithlessSummary(term)}.</p>}
+    {term.grid.recounts?.length ? <p className="results-note">Recounts: {term.grid.recounts.map((r) =>
+      `${STATES[r.state]!.name} (${r.flipped ? 'flipped' : 'held'})`).join(', ')}.</p> : null}
     <div className="results-congress">
       <span className="eyebrow">Congress leader</span>
       <div><PartyLink party={term.congressLeader} /><strong>{percent(term.congress[term.congressLeader]!)}</strong></div>

@@ -6,6 +6,9 @@
  */
 import { chooseNominees, homeStates, nameLists, supportWithNominees } from './candidates';
 import { nationalVote } from './popularVote';
+import { CONTESTED_APPROVAL, isContested } from './recounts';
+import { electoralUnder, faithlessElectors, type ElectorRule } from './electorRules';
+import { blocTurnout, NO_FRESH, sharesByTurnout, widenElectorate } from './turnout';
 import { findSpoiler, nomineesWithSpoiler, supportWithSpoiler } from './spoilers';
 import { chooseRunningMates, rollSuccession, runningMateHomes, SUCCESSION_MOOD } from './succession';
 import { holdPrimaries, nomineePosition, partyAfterPrimaries, supportAfterPrimaries } from './primaries';
@@ -73,6 +76,14 @@ export interface Timeline {
   popularVote: boolean;
   /** True when spoiler candidates were simulated (only ever with primaries). */
   spoilers: boolean;
+  /** True when recounts were simulated (only ever with the state popular vote). */
+  recounts: boolean;
+  /** How electors were chosen: winner-take-all unless the state popular vote is on and another method was picked. */
+  electorRule: ElectorRule;
+  /** True when named faithless electors were simulated (only ever with the state popular vote). */
+  faithless: boolean;
+  /** True when turnout and suffrage were simulated. */
+  turnout: boolean;
   /** One entry per election, 1792 first. */
   terms: Term[];
   /** The president inaugurated in 2065, after the last election. */
@@ -164,6 +175,10 @@ function firstTerm(ctx: Context): Term {
     nominees: null,
     primaries: null,
     spoiler: null,
+    contested: false,
+    faithless: null,
+    turnout: null,
+    suffrage: null,
     runningMates: null,
     vicePresident: null,
     succession: null,
@@ -185,7 +200,8 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   const president = prev.winnerName;
   const potusParty = prev.winnerParty;
   const potusIdeology = presidentIdeology(potusParty, prev);
-  const dayOne = dayOneApproval(prev, prev2);
+  // A president who won a contested election starts less popular.
+  const dayOne = prev.contested ? Math.max(0.05, dayOneApproval(prev, prev2) - CONTESTED_APPROVAL) : dayOneApproval(prev, prev2);
 
   // Territory.
   const expansions = updateExpansions(
@@ -236,7 +252,10 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   const electionDay = succession ? clamp(approvalOnTheDay + SUCCESSION_MOOD[succession.cause], 0.05, 0.9) : approvalOnTheDay;
 
   // The electorate and the parties.
-  const blocSizes = updateBlocSizes(prev, potusIdeology, dayOne, electionDay, ctx);
+  const movedBlocs = updateBlocSizes(prev, potusIdeology, dayOne, electionDay, ctx);
+  // Turnout addition: the electorate widens when real history widened it.
+  const widened = ctx.turnout ? widenElectorate(election, movedBlocs, prev.turnout?.fresh ?? NO_FRESH) : null;
+  const blocSizes = widened?.sizes ?? movedBlocs;
   const shares = blocShares(blocSizes);
   const center = electorateCenter(shares);
   // The sheet hand-types every party's ideology for 1796.
@@ -249,7 +268,11 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
     ctx,
   );
   const strengthThird = thirdPartyStrength(strength);
-  const { votes, totals, nonvoters } = partyVotes(strength, ideology, shares, ctx.corrections);
+  // Turnout addition: each bloc turns out at its own rate, which scales what parties can win from it.
+  const turnout = widened
+    ? blocTurnout({ shares, fresh: widened.fresh, ideology, lastSupport: prev.support, potusIdeology, performance: perf, descriptor: label }, ctx)
+    : null;
+  const { votes, totals, nonvoters } = partyVotes(strength, ideology, turnout ? sharesByTurnout(shares, turnout) : shares, ctx.corrections);
   const national = nationalSupport(election, strength, strengthThird, totals, ideology, ctx);
 
   // With candidate traits on, each party picks a nominee first, and who runs moves
@@ -291,12 +314,23 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
       ...(runningMates && { mateHomes: runningMateHomes(runningMates, STATES.map((state) => state.code)) }) },
     ctx,
   );
-  const electoral = electoralShares(grid, ctx);
+  // Elector rules addition: with the state popular vote on, the timeline can run under
+  // another method of choosing electors, and faithless electors can be named. With
+  // both at their defaults this is the spreadsheet's count, stray electors and all.
+  const rule: ElectorRule = grid.voteShares ? ctx.electorRule ?? 'winner-take-all' : 'winner-take-all';
+  const counted = rule === 'winner-take-all' && !(ctx.faithless && grid.voteShares)
+    ? electoralShares(grid, ctx)
+    : electoralUnder(rule, grid.winners, grid.voteShares!, grid.votes);
+  const named = ctx.faithless && grid.voteShares && rule !== 'national'
+    ? faithlessElectors(counted, grid.winners, grid.voteShares, grid.votes, ctx)
+    : null;
+  const electoral = named?.electoral ?? counted;
+  const faithless = named?.faithless ?? null;
   const leanAvg = leanAverage(grid);
 
   // Congress, then the presidency.
   const congress = electCongress(sitting, label, support, shownIdeology, grid, ctx);
-  const winnerParty = electPresident(electoral, sitting, ctx.corrections);
+  const winnerParty = rule === 'national' ? argMax(electoral) : electPresident(electoral, sitting, ctx.corrections);
   const result = potusParty === winnerParty ? 'WIN' : 'LOSS';
   const nextIdeology = winnerParty === P.THIRD ? center : ideology[winnerParty]!;
   const winner = nominees?.find((n) => n.party === winnerParty)?.name ?? winnerName(
@@ -310,6 +344,7 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
   );
   const winnerElectoralShare = electoral[winnerParty]!;
   const popularVote = grid.voteShares ? nationalVote(grid.voteShares, grid.votes) : null;
+  const contested = grid.recounts ? isContested(grid.winners, grid.voteShares!, grid.votes, grid.recounts, sitting, ctx.corrections, rule) : false;
 
   return {
     index,
@@ -341,6 +376,10 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
     nominees,
     primaries,
     spoiler,
+    contested,
+    faithless,
+    turnout,
+    suffrage: widened?.suffrage ?? null,
     runningMates,
     vicePresident,
     succession,
@@ -372,7 +411,11 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
   const runningMates = candidateTraits && settings.runningMates === true;
   const popularVote = settings.popularVote === true;
   const spoilers = primaries && settings.spoilers === true;
-  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms, candidateTraits, primaries, runningMates, popularVote, spoilers, seed };
+  const recounts = popularVote && settings.recounts === true;
+  const electorRule: ElectorRule = popularVote ? settings.electorRule ?? 'winner-take-all' : 'winner-take-all';
+  const faithless = popularVote && settings.faithless === true;
+  const turnout = settings.turnout === true;
+  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms, candidateTraits, primaries, runningMates, popularVote, spoilers, recounts, electorRule, faithless, turnout, seed };
 
   const terms: Term[] = [firstTerm(ctx)];
   while (terms.length < ELECTIONS.length) terms.push(nextTerm(terms, ctx));
@@ -414,6 +457,10 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
     runningMates,
     popularVote,
     spoilers,
+    recounts,
+    electorRule,
+    faithless,
+    turnout,
     terms,
     finalPresident,
     finalExpansions,

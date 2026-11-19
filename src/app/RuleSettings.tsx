@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { activeAdditions, ELECTOR_RULE_LABELS, type AdditionSwitch, type Additions } from './presentation';
+import { ELECTOR_RULES, type ElectorRule } from '../engine/electorRules';
 import { RULES, rulePreset, type Preset, type Rule } from '../engine/rules';
 import type { VoteDisplay } from './voteDisplay';
 
@@ -68,28 +70,64 @@ const descriptions: Record<Rule, { title: string; detail: string }> = {
   },
 };
 
-export function RuleSettings({ corrections, midterms, traits, primaries, runningMates, popularVote, spoilers, voteDisplay, apply, dismiss }: {
+/** Only the additions out of a timeline location. */
+const pickAdditions = (a: Additions): Additions => ({
+  midterms: a.midterms, traits: a.traits, primaries: a.primaries, runningMates: a.runningMates, popularVote: a.popularVote,
+  spoilers: a.spoilers, recounts: a.recounts, faithless: a.faithless, turnout: a.turnout, electorRule: a.electorRule,
+});
+
+/** The additions' switches in the order the dialog lists them; needs says whether another addition must be on first. */
+const ADDITION_ROWS: { key: AdditionSwitch; title: string; detail: string; needs?: (a: Additions) => boolean }[] = [
+  { key: 'midterms', title: 'Midterm elections', detail: `Elect Congress again two years into each term, starting in 1794. The
+    president's party usually loses ground, more so when the term is going badly. The new Congress shapes approval, the Supreme
+    Court and deadlocked elections, so this gives a different history for the same seed. On by default; the spreadsheet has no
+    midterms, so switch this off to match it exactly.` },
+  { key: 'traits', title: 'Candidate traits', detail: `Every party picks a nominee before the vote. Their home state leans their
+    way, charisma and experience move national support a little, and a sitting president running again gets an edge. Home
+    states are real; charisma and experience are rolled for each timeline. On by default; switch this off to match the
+    spreadsheet.` },
+  { key: 'primaries', title: 'Primaries', needs: (a) => a.traits, detail: `Each party's moderate and ideologue wings fight for
+    the nomination. The winner's position is what voters see, what a winning president governs from, and it pulls the party
+    toward it. A close, bitter fight costs the nominee support in November, and a president whose term went badly can be
+    challenged. Needs candidate traits. On by default; switch this off to match the spreadsheet.` },
+  { key: 'runningMates', title: 'Running mates and succession', needs: (a) => a.traits, detail: `Every nominee picks a running
+    mate, often their primary rival, whose home state leans a little toward the ticket. Each term the president may die, be
+    assassinated or resign; the vice president then serves out the term and is the sitting president at the next election,
+    with sympathy after a death and a hit after a resignation. Needs candidate traits. On by default; switch this off to match
+    the spreadsheet.` },
+  { key: 'spoilers', title: 'Spoiler candidates', needs: (a) => a.traits && a.primaries, detail: `Rarely, the loser of a bitter
+    primary in a big party splits off and runs anyway as the Third Party's candidate, taking part of their old party's support
+    with them, as Theodore Roosevelt did in 1912. Expect two or three in a timeline. Needs primaries. On by default; switch
+    this off to match the spreadsheet.` },
+  { key: 'popularVote', title: 'State popular vote', detail: `Every state counts its votes: each party's share comes from how
+    close it is to the state, its national support, home states, the state's loyalty to last time's winner and some chance.
+    The plurality wins the state, and the national popular vote adds the states up, so a president can win while losing the
+    popular vote. On by default; switch this off to match the spreadsheet.` },
+  { key: 'recounts', title: 'Close states and recounts', needs: (a) => a.popularVote, detail: `A state won by under half a point
+    is counted again, and the closer it was, the likelier the recount flips it. When a recounted state could have changed who
+    won the presidency, the result is contested, as in 1876 and 2000, and the winner starts their term less popular. Needs the
+    state popular vote. On by default; switch this off to match the spreadsheet.` },
+  { key: 'faithless', title: 'Faithless electors', needs: (a) => a.popularVote, detail: `Now and then one or two of a state's
+    electors vote for the runner-up instead of the state's winner, and the results name them. This replaces the spreadsheet's
+    unnamed stray electors. Needs the state popular vote. On by default; switch this off to match the spreadsheet.` },
+  { key: 'turnout', title: 'Turnout and suffrage', detail: `Each ideology bloc turns out at its own rate: more after a close
+    election and when a party stands near it, less for the president's side after a bad term. The vote widens when it did in
+    real history (Black men in 1870, women in 1920, the Voting Rights Act in 1965, 18-year-olds in 1971), and new voters turn
+    out less at first. On by default; switch this off to match the spreadsheet.` },
+];
+
+export function RuleSettings({ corrections, additions, voteDisplay, apply, dismiss }: {
   corrections: readonly Rule[];
-  midterms: boolean;
-  traits: boolean;
-  primaries: boolean;
-  runningMates: boolean;
-  popularVote: boolean;
-  spoilers: boolean;
+  additions: Additions;
   voteDisplay: VoteDisplay;
-  apply: (rules: readonly Rule[], voteDisplay: VoteDisplay, midterms: boolean, traits: boolean, primaries: boolean, runningMates: boolean,
-    popularVote: boolean, spoilers: boolean) => void;
+  apply: (rules: readonly Rule[], voteDisplay: VoteDisplay, additions: Additions) => void;
   dismiss: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [draft, setDraft] = useState<readonly Rule[]>(corrections);
   const [display, setDisplay] = useState<VoteDisplay>(voteDisplay);
-  const [withMidterms, setWithMidterms] = useState(midterms);
-  const [withTraits, setWithTraits] = useState(traits);
-  const [withPrimaries, setWithPrimaries] = useState(primaries);
-  const [withRunningMates, setWithRunningMates] = useState(runningMates);
-  const [withPopularVote, setWithPopularVote] = useState(popularVote);
-  const [withSpoilers, setWithSpoilers] = useState(spoilers);
+  const [chosen, setChosen] = useState<Additions>(() => pickAdditions(additions));
+  const running = activeAdditions(chosen);
   const preset = rulePreset(draft);
 
   useEffect(() => {
@@ -104,7 +142,7 @@ export function RuleSettings({ corrections, midterms, traits, primaries, running
     <dialog className="rule-dialog" ref={dialog} aria-labelledby="rules-title" onClose={dismiss}>
       <form onSubmit={(event) => {
         event.preventDefault();
-        apply(RULES.filter((rule) => draft.includes(rule)), display, withMidterms, withTraits, withPrimaries, withRunningMates, withPopularVote, withSpoilers);
+        apply(RULES.filter((rule) => draft.includes(rule)), display, chosen);
         dialog.current?.close();
       }}>
         <header className="rule-heading">
@@ -133,56 +171,24 @@ export function RuleSettings({ corrections, midterms, traits, primaries, running
           </fieldset>
           <fieldset className="rule-list">
             <legend className="rule-section">Additions</legend>
-            <label className="rule-row">
-              <span><strong>Midterm elections</strong><small id="rule-midterms">Elect Congress again two years into each term,
-                starting in 1794. The president's party usually loses ground, more so when the term is going badly. The new
-                Congress shapes approval, the Supreme Court and deadlocked elections, so this gives a different history for the
-                same seed. On by default; the spreadsheet has no midterms, so switch this off to match it exactly.</small></span>
-              <input type="checkbox" role="switch" checked={withMidterms} onChange={(event) => setWithMidterms(event.target.checked)}
-                aria-label="Midterm elections" aria-describedby="rule-midterms" />
-            </label>
-            <label className="rule-row">
-              <span><strong>Candidate traits</strong><small id="rule-traits">Every party picks a nominee before the vote. Their home
-                state leans their way, charisma and experience move national support a little, and a sitting president running
-                again gets an edge. Home states are real; charisma and experience are rolled for each timeline. On by default;
-                switch this off to match the spreadsheet.</small></span>
-              <input type="checkbox" role="switch" checked={withTraits} onChange={(event) => setWithTraits(event.target.checked)}
-                aria-label="Candidate traits" aria-describedby="rule-traits" />
-            </label>
-            <label className="rule-row" data-disabled={!withTraits || undefined}>
-              <span><strong>Primaries</strong><small id="rule-primaries">Each party's moderate and ideologue wings fight for the
-                nomination. The winner's position is what voters see, what a winning president governs from, and it pulls the
-                party toward it. A close, bitter fight costs the nominee support in November, and a president whose term went
-                badly can be challenged. Needs candidate traits. On by default; switch this off to match the spreadsheet.</small></span>
-              <input type="checkbox" role="switch" checked={withTraits && withPrimaries} disabled={!withTraits}
-                onChange={(event) => setWithPrimaries(event.target.checked)} aria-label="Primaries" aria-describedby="rule-primaries" />
-            </label>
-            <label className="rule-row" data-disabled={!withTraits || undefined}>
-              <span><strong>Running mates and succession</strong><small id="rule-running-mates">Every nominee picks a running mate,
-                often their primary rival, whose home state leans a little toward the ticket. Each term the president may die,
-                be assassinated or resign; the vice president then serves out the term and is the sitting president at the next
-                election, with sympathy after a death and a hit after a resignation. Needs candidate traits. On by default;
-                switch this off to match the spreadsheet.</small></span>
-              <input type="checkbox" role="switch" checked={withTraits && withRunningMates} disabled={!withTraits}
-                onChange={(event) => setWithRunningMates(event.target.checked)} aria-label="Running mates and succession"
-                aria-describedby="rule-running-mates" />
-            </label>
-            <label className="rule-row" data-disabled={!(withTraits && withPrimaries) || undefined}>
-              <span><strong>Spoiler candidates</strong><small id="rule-spoilers">Rarely, the loser of a bitter primary in a big
-                party splits off and runs anyway as the Third Party's candidate, taking part of their old party's support with them,
-                as Theodore Roosevelt did in 1912. Expect two or three in a timeline. Needs primaries. On by default; switch this
-                off to match the spreadsheet.</small></span>
-              <input type="checkbox" role="switch" checked={withTraits && withPrimaries && withSpoilers} disabled={!(withTraits && withPrimaries)}
-                onChange={(event) => setWithSpoilers(event.target.checked)} aria-label="Spoiler candidates" aria-describedby="rule-spoilers" />
-            </label>
-            <label className="rule-row">
-              <span><strong>State popular vote</strong><small id="rule-popular-vote">Every state counts its votes: each party's
-                share comes from how close it is to the state, its national support, home states, the state's loyalty to last
-                time's winner and some chance. The plurality wins the state, and the national popular vote adds the states up,
-                so a president can win while losing the popular vote. On by default; switch this off to match the
-                spreadsheet.</small></span>
-              <input type="checkbox" role="switch" checked={withPopularVote} onChange={(event) => setWithPopularVote(event.target.checked)}
-                aria-label="State popular vote" aria-describedby="rule-popular-vote" />
+            {ADDITION_ROWS.map(({ key, title, detail, needs }) => {
+              const available = needs ? needs(chosen) : true;
+              return <label className="rule-row" key={key} data-disabled={!available || undefined}>
+                <span><strong>{title}</strong><small id={`rule-${key}`}>{detail}</small></span>
+                <input type="checkbox" role="switch" checked={available && running[key]} disabled={!available}
+                  onChange={(event) => setChosen({ ...chosen, [key]: event.target.checked })} aria-label={title} aria-describedby={`rule-${key}`} />
+              </label>;
+            })}
+            <label className="rule-row rule-choice" data-disabled={!chosen.popularVote || undefined}>
+              <span><strong>How states choose electors</strong><small id="rule-elector-rule">Winner-take-all is how nearly every
+                state does it and the only method the spreadsheet knows. By district gives the state's winner two electors and
+                splits the rest by vote share, with a bonus for the leader. Proportional splits every elector by vote share.
+                A national popular vote elects whoever wins the most votes nationwide. Every election also shows who would have
+                won under each method. Needs the state popular vote.</small></span>
+              <select value={running.electorRule} disabled={!chosen.popularVote} aria-describedby="rule-elector-rule"
+                aria-label="How states choose electors" onChange={(event) => setChosen({ ...chosen, electorRule: event.target.value as ElectorRule })}>
+                {ELECTOR_RULES.map((rule) => <option key={rule} value={rule}>{ELECTOR_RULE_LABELS[rule]}</option>)}
+              </select>
             </label>
           </fieldset>
           <fieldset className="rule-list">

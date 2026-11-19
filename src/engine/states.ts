@@ -10,6 +10,7 @@
 import { HOME_STATE_BONUS } from './candidates';
 import { RUNNING_MATE_HOME_BONUS } from './succession';
 import { stateShares } from './popularVote';
+import { runRecounts } from './recounts';
 import {
   CENSUS_ELECTIONS,
   NAMED_PARTY_COUNT,
@@ -280,9 +281,12 @@ export function nextGrid(prev: StateGrid, input: GridInput, ctx: Context): State
 
   const voteShares: number[][] | undefined = ctx.popularVote ? STATES.map(() => []) : undefined;
   const winners = nextWinners(prev, lean, votes, input, ctx, voteShares);
+  // Recounts addition: states won by under half a point are counted again, and some flip.
+  const recounts = ctx.recounts && voteShares ? runRecounts(winners, voteShares, ctx) : undefined;
   const { total, seceded, votingStates } = electoralTotals({ winners, votes });
   return {
     ...(voteShares && { voteShares }),
+    ...(recounts && { recounts }),
     expansions: input.expansions,
     expanded: input.expanded,
     winners,

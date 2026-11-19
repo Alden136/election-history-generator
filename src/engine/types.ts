@@ -1,6 +1,7 @@
 import type { Nominee } from './candidates';
 import type { Primary } from './primaries';
 import type { Succession } from './succession';
+import type { Spoiler } from './spoilers';
 import type { MidtermCongress } from './congress';
 import type { Rule } from './rules';
 import type { Rng } from './rng';
@@ -28,6 +29,8 @@ export interface Settings {
   runningMates?: boolean;
   /** A real state-by-state popular vote: an addition the spreadsheet does not have, off unless true. */
   popularVote?: boolean;
+  /** Spoiler candidates: an addition the spreadsheet does not have, off unless true; needs primaries. */
+  spoilers?: boolean;
 }
 
 /** Who carried a state: a party index (0-14), or one of the two special values. */
@@ -134,6 +137,8 @@ export interface Term {
   nominees: Nominee[] | null;
   /** Each named party's primary at this election, when primaries are on; null otherwise and for 1792. */
   primaries: Primary[] | null;
+  /** A primary loser running as the Third Party's candidate at this election, when spoilers are on; usually null. */
+  spoiler: Spoiler | null;
   /** Each nominee's running mate at this election, when running mates are on; null otherwise and for 1792. */
   runningMates: Nominee[] | null;
   /** The vice president serving this term, when running mates are on and one was elected with the president. */
@@ -164,6 +169,8 @@ export interface Context {
   /** Running mates and succession, only ever true together with candidateTraits. */
   runningMates?: boolean;
   popularVote?: boolean;
+  /** Spoiler candidates, only ever true together with primaries. */
+  spoilers?: boolean;
   /** The timeline's seed, for traits rolled without the shared random numbers. */
   seed?: number;
 }

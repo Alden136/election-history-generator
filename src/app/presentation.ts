@@ -44,6 +44,8 @@ export interface TimelineLocation {
   runningMates: boolean;
   /** The state-by-state popular vote, an addition that is on unless the link says pv=0. */
   popularVote: boolean;
+  /** Spoiler candidates, an addition that is on unless the link says spoilers=0. They only run with primaries on. */
+  spoilers: boolean;
 }
 
 export function readLocation(search: string): TimelineLocation {
@@ -65,10 +67,11 @@ export function readLocation(search: string): TimelineLocation {
     primaries: params.get('primaries') !== '0',
     runningMates: params.get('vp') !== '0',
     popularVote: params.get('pv') !== '0',
+    spoilers: params.get('spoilers') !== '0',
   };
 }
 
-export function timelineUrl(href: string, { seed, year, corrections, dials, midterms, traits, primaries, runningMates, popularVote }: TimelineLocation): URL {
+export function timelineUrl(href: string, { seed, year, corrections, dials, midterms, traits, primaries, runningMates, popularVote, spoilers }: TimelineLocation): URL {
   const url = new URL(href);
   url.searchParams.set('seed', String(seed));
   url.searchParams.set('year', String(year));
@@ -89,6 +92,8 @@ export function timelineUrl(href: string, { seed, year, corrections, dials, midt
   else url.searchParams.set('vp', '0');
   if (popularVote) url.searchParams.delete('pv');
   else url.searchParams.set('pv', '0');
+  if (spoilers) url.searchParams.delete('spoilers');
+  else url.searchParams.set('spoilers', '0');
   return url;
 }
 
@@ -182,9 +187,9 @@ export function approximateCount(votes: number): string {
 }
 
 /** The additions switched on, in words: "midterm elections, candidate traits and primaries". Primaries and running mates count only with traits. */
-export function additionsText(midterms: boolean, traits: boolean, primaries = false, runningMates = false, popularVote = false): string {
+export function additionsText(midterms: boolean, traits: boolean, primaries = false, runningMates = false, popularVote = false, spoilers = false): string {
   const on = [midterms && 'midterm elections', traits && 'candidate traits', traits && primaries && 'primaries', traits && runningMates && 'running mates',
-    popularVote && 'a state popular vote'].filter((item): item is string => Boolean(item));
+    popularVote && 'a state popular vote', traits && primaries && spoilers && 'spoiler candidates'].filter((item): item is string => Boolean(item));
   return on.length > 1 ? `${on.slice(0, -1).join(', ')} and ${on.at(-1)}` : on.join('');
 }
 

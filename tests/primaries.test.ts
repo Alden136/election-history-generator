@@ -117,7 +117,7 @@ describe('primaries', () => {
 describe('primaries in the app', () => {
   it('are on by default, travel in share links as primaries=0 when off, and count only with traits', () => {
     expect(readLocation('?seed=3&year=1900').primaries).toBe(true);
-    const base = { seed: 3, year: 1900, corrections: RULES, dials: DEFAULT_DIALS, midterms: true, traits: true, runningMates: true, popularVote: true };
+    const base = { seed: 3, year: 1900, corrections: RULES, dials: DEFAULT_DIALS, midterms: true, traits: true, runningMates: true, popularVote: true, spoilers: true };
     const off = timelineUrl('https://example.test/', { ...base, primaries: false });
     expect(off.searchParams.get('primaries')).toBe('0');
     expect(readLocation(off.search).primaries).toBe(false);

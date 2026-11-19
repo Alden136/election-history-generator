@@ -68,16 +68,17 @@ const descriptions: Record<Rule, { title: string; detail: string }> = {
   },
 };
 
-export function RuleSettings({ corrections, midterms, traits, primaries, runningMates, popularVote, voteDisplay, apply, dismiss }: {
+export function RuleSettings({ corrections, midterms, traits, primaries, runningMates, popularVote, spoilers, voteDisplay, apply, dismiss }: {
   corrections: readonly Rule[];
   midterms: boolean;
   traits: boolean;
   primaries: boolean;
   runningMates: boolean;
   popularVote: boolean;
+  spoilers: boolean;
   voteDisplay: VoteDisplay;
   apply: (rules: readonly Rule[], voteDisplay: VoteDisplay, midterms: boolean, traits: boolean, primaries: boolean, runningMates: boolean,
-    popularVote: boolean) => void;
+    popularVote: boolean, spoilers: boolean) => void;
   dismiss: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -88,6 +89,7 @@ export function RuleSettings({ corrections, midterms, traits, primaries, running
   const [withPrimaries, setWithPrimaries] = useState(primaries);
   const [withRunningMates, setWithRunningMates] = useState(runningMates);
   const [withPopularVote, setWithPopularVote] = useState(popularVote);
+  const [withSpoilers, setWithSpoilers] = useState(spoilers);
   const preset = rulePreset(draft);
 
   useEffect(() => {
@@ -102,7 +104,7 @@ export function RuleSettings({ corrections, midterms, traits, primaries, running
     <dialog className="rule-dialog" ref={dialog} aria-labelledby="rules-title" onClose={dismiss}>
       <form onSubmit={(event) => {
         event.preventDefault();
-        apply(RULES.filter((rule) => draft.includes(rule)), display, withMidterms, withTraits, withPrimaries, withRunningMates, withPopularVote);
+        apply(RULES.filter((rule) => draft.includes(rule)), display, withMidterms, withTraits, withPrimaries, withRunningMates, withPopularVote, withSpoilers);
         dialog.current?.close();
       }}>
         <header className="rule-heading">
@@ -164,6 +166,14 @@ export function RuleSettings({ corrections, midterms, traits, primaries, running
               <input type="checkbox" role="switch" checked={withTraits && withRunningMates} disabled={!withTraits}
                 onChange={(event) => setWithRunningMates(event.target.checked)} aria-label="Running mates and succession"
                 aria-describedby="rule-running-mates" />
+            </label>
+            <label className="rule-row" data-disabled={!(withTraits && withPrimaries) || undefined}>
+              <span><strong>Spoiler candidates</strong><small id="rule-spoilers">Rarely, the loser of a bitter primary in a big
+                party bolts and runs anyway as the Third Party's candidate, taking part of their old party's support with them,
+                as Theodore Roosevelt did in 1912. Expect two or three in a timeline. Needs primaries. On by default; switch this
+                off to match the spreadsheet.</small></span>
+              <input type="checkbox" role="switch" checked={withTraits && withPrimaries && withSpoilers} disabled={!(withTraits && withPrimaries)}
+                onChange={(event) => setWithSpoilers(event.target.checked)} aria-label="Spoiler candidates" aria-describedby="rule-spoilers" />
             </label>
             <label className="rule-row">
               <span><strong>State popular vote</strong><small id="rule-popular-vote">Every state counts its votes: each party's

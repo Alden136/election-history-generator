@@ -6,6 +6,7 @@
  */
 import { chooseNominees, homeStates, nameLists, supportWithNominees } from './candidates';
 import { nationalVote } from './popularVote';
+import { findSpoiler, nomineesWithSpoiler, supportWithSpoiler } from './spoilers';
 import { chooseRunningMates, rollSuccession, runningMateHomes, SUCCESSION_MOOD } from './succession';
 import { holdPrimaries, nomineePosition, partyAfterPrimaries, supportAfterPrimaries } from './primaries';
 import { electCongress, electMidterm, electPresident } from './congress';
@@ -70,6 +71,8 @@ export interface Timeline {
   runningMates: boolean;
   /** True when the state-by-state popular vote was simulated. */
   popularVote: boolean;
+  /** True when spoiler candidates were simulated (only ever with primaries). */
+  spoilers: boolean;
   /** One entry per election, 1792 first. */
   terms: Term[];
   /** The president inaugurated in 2065, after the last election. */
@@ -160,6 +163,7 @@ function firstTerm(ctx: Context): Term {
     midterm: null,
     nominees: null,
     primaries: null,
+    spoiler: null,
     runningMates: null,
     vicePresident: null,
     succession: null,
@@ -257,16 +261,26 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
     // A vice president who took over is the sitting president; the one before them is who they replaced.
     president: sittingPresident, previousPresident: succession ? president : prev.president };
   const primaryRun = ctx.candidateTraits && ctx.primaries ? holdPrimaries({ ...nomination, performance: perf, potusIdeology }, ctx) : null;
-  const nominees = primaryRun?.nominees ?? (ctx.candidateTraits ? chooseNominees(nomination, ctx) : null);
+  const chosen = primaryRun?.nominees ?? (ctx.candidateTraits ? chooseNominees(nomination, ctx) : null);
   const primaries = primaryRun?.primaries ?? null;
-  const appeal = nominees ? supportWithNominees(national.support, nominees) : national.support;
-  const support = primaries ? supportAfterPrimaries(appeal, primaries) : appeal;
+  const appeal = chosen ? supportWithNominees(national.support, chosen) : national.support;
+  const afterPrimaries = primaries ? supportAfterPrimaries(appeal, primaries) : appeal;
+  // With spoilers on, now and then a bitter primary's loser bolts and runs as the Third
+  // Party's candidate, taking part of their old party's support with them.
+  const spoiler = ctx.spoilers && primaries ? findSpoiler(primaries, afterPrimaries, ctx) : null;
+  const support = spoiler ? supportWithSpoiler(afterPrimaries, spoiler) : afterPrimaries;
+  const nominees = spoiler && chosen ? nomineesWithSpoiler(chosen, spoiler, ctx.seed ?? 0) : chosen;
+  // A spoiler is nobody's running mate: their old party picks from its own list instead.
+  const ticketPrimaries = spoiler
+    ? primaries!.map((p) => (p.party === spoiler.party ? { ...p, contenders: [p.contenders[p.winner]!], winner: 0 } : p))
+    : primaries;
   const runningMates = nominees && ctx.runningMates
-    ? chooseRunningMates(nominees, primaries, nameLists(election),
-      (party) => (party === P.THIRD ? center : nomineePosition(primaries, party) ?? ideology[party]!), new Set([sittingPresident]), ctx)
+    ? chooseRunningMates(nominees, ticketPrimaries, nameLists(election),
+      (party) => (party === P.THIRD ? spoiler?.position ?? center : nomineePosition(primaries, party) ?? ideology[party]!),
+      new Set([sittingPresident]), ctx)
     : null;
   const shownIdeology = primaries
-    ? national.shownIdeology.map((score, party) => nomineePosition(primaries, party) ?? score)
+    ? national.shownIdeology.map((score, party) => (party === P.THIRD && spoiler ? spoiler.position : nomineePosition(primaries, party) ?? score))
     : national.shownIdeology;
 
   // The states vote.
@@ -326,6 +340,7 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
     closeness: congress.closeness,
     nominees,
     primaries,
+    spoiler,
     runningMates,
     vicePresident,
     succession,
@@ -356,7 +371,8 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
   const primaries = candidateTraits && settings.primaries === true;
   const runningMates = candidateTraits && settings.runningMates === true;
   const popularVote = settings.popularVote === true;
-  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms, candidateTraits, primaries, runningMates, popularVote, seed };
+  const spoilers = primaries && settings.spoilers === true;
+  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms, candidateTraits, primaries, runningMates, popularVote, spoilers, seed };
 
   const terms: Term[] = [firstTerm(ctx)];
   while (terms.length < ELECTIONS.length) terms.push(nextTerm(terms, ctx));
@@ -397,6 +413,7 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
     primaries,
     runningMates,
     popularVote,
+    spoilers,
     terms,
     finalPresident,
     finalExpansions,

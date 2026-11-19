@@ -19,7 +19,9 @@ const CRISIS_ELECTIONS: ReadonlySet<number> = new Set([
  * The president's ideology is their party's score from the previous term, or with
  * primaries on, the position they won their primary on.
  */
-export function presidentIdeology(party: number, prev: Pick<Term, 'center' | 'ideology'> & Partial<Pick<Term, 'primaries'>>): number {
+export function presidentIdeology(party: number, prev: Pick<Term, 'center' | 'ideology'> & Partial<Pick<Term, 'primaries' | 'spoiler'>>): number {
+  // A spoiler who won governs from the position they bolted on.
+  if (party === P.THIRD && prev.spoiler) return prev.spoiler.position;
   return nomineePosition(prev.primaries, party) ?? (party === P.THIRD ? prev.center : prev.ideology[party]!);
 }
 

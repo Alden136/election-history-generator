@@ -11,9 +11,9 @@ function memoryStore(initial?: string) {
   return { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => void data.set(key, value) };
 }
 
-const corrected: TimelineLocation = { seed: 42, year: 2024, corrections: RULES, dials: DEFAULT_DIALS, midterms: false, traits: false, primaries: false, runningMates: false, popularVote: false };
+const corrected: TimelineLocation = { seed: 42, year: 2024, corrections: RULES, dials: DEFAULT_DIALS, midterms: false, traits: false, primaries: false, runningMates: false, popularVote: false, spoilers: false };
 const custom: TimelineLocation = {
-  seed: 7, year: 1860, corrections: RULES.slice(0, 3), dials: { ...DEFAULT_DIALS, partyLoyalty: 0.8, potusBacklash: 0.73 }, midterms: true, traits: true, primaries: true, runningMates: true, popularVote: true,
+  seed: 7, year: 1860, corrections: RULES.slice(0, 3), dials: { ...DEFAULT_DIALS, partyLoyalty: 0.8, potusBacklash: 0.73 }, midterms: true, traits: true, primaries: true, runningMates: true, popularVote: true, spoilers: true,
 };
 
 describe('saved timelines', () => {
@@ -27,7 +27,7 @@ describe('saved timelines', () => {
     expect(loaded.map((item) => item.name)).toEqual(['Seed 42 · 2024', 'Civil war timeline']);
     expect(locationOf(loaded[1]!)).toEqual(custom);
     expect(locationOf(loaded[0]!)).toEqual(corrected);
-    expect(describeSaved(loaded[1]!)).toBe('Seed 7 · 1860 · Custom · Midterms · Traits · Primaries · Running mates · State vote · 2 dials adjusted');
+    expect(describeSaved(loaded[1]!)).toBe('Seed 7 · 1860 · Custom · Midterms · Traits · Primaries · Running mates · State vote · Spoilers · 2 dials adjusted');
     expect(describeSaved(loaded[0]!)).toBe('Seed 42 · 2024 · Corrected');
 
     const left = removeSaved(loaded, loaded[0]!.id);

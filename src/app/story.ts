@@ -5,7 +5,7 @@
  * the same text and the story never claims something the timeline does not show.
  * Display only; nothing here feeds back into the simulation.
  */
-import { partyName } from '../engine/data';
+import { P, partyName } from '../engine/data';
 import type { Timeline } from '../engine/simulate';
 import type { Succession } from '../engine/succession';
 import { SECEDED, type Expansions, type Term } from '../engine/types';
@@ -30,6 +30,8 @@ export interface ChapterFacts {
   contingent: number[];
   /** Elections the voters decided in which the winner lost the popular vote (state popular vote addition). */
   popularLosers: { election: number; name: string; party: number }[];
+  /** Primary losers who ran anyway as the Third Party's candidate (spoiler candidates addition). */
+  spoilers: { election: number; name: string; party: number; won: boolean; partyLost: boolean }[];
   /** The winner's largest and smallest Electoral College share, among elections decided by the voters. */
   landslide: { election: number; name: string; party: number; share: number } | null;
   closest: { election: number; name: string; party: number; share: number } | null;
@@ -147,6 +149,8 @@ export function chapterFacts(timeline: Timeline, chapter: number): ChapterFacts 
     contingent: electionRows.filter((t) => t.index > 0 && Math.max(...t.electoral) <= 0.5).map((t) => t.election),
     popularLosers: decidedByVoters.filter((t) => t.popularVote && t.popularVote.indexOf(Math.max(...t.popularVote)) !== t.winnerParty)
       .map((t) => ({ election: t.election, name: t.winnerName, party: t.winnerParty })),
+    spoilers: electionRows.filter((t) => t.spoiler).map((t) => ({ election: t.election, name: t.spoiler!.name, party: t.spoiler!.party,
+      won: t.winnerParty === P.THIRD, partyLost: t.winnerParty !== t.spoiler!.party })),
     landslide: pick((a, b) => a.winnerElectoralShare > b.winnerElectoralShare),
     closest: pick((a, b) => a.winnerElectoralShare < b.winnerElectoralShare),
     rose, fell,
@@ -277,6 +281,13 @@ function elections(facts: ChapterFacts): string | null {
   }
   if (facts.contingent.length) {
     sentences.push(`No party won a majority of the Electoral College in ${list(facts.contingent.map(String))}, so Congress chose the president.`);
+  }
+  for (const s of facts.spoilers) {
+    sentences.push(s.won
+      ? `In ${s.election}, ${s.name} lost the ${party(s.party)} primary, ran anyway and won the presidency.`
+      : s.partyLost
+        ? `In ${s.election}, ${s.name} lost the ${party(s.party)} primary and ran anyway, splitting the vote; the ${party(s.party)} party lost.`
+        : `In ${s.election}, ${s.name} lost the ${party(s.party)} primary and ran anyway, but the ${party(s.party)} party still won.`);
   }
   for (const loser of facts.popularLosers) {
     sentences.push(`In ${loser.election}, ${loser.name} (${party(loser.party)}) won the presidency despite losing the popular vote.`);

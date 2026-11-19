@@ -942,3 +942,7 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 .theme-switch button:hover { color: #f4f2ee; background: #222120; }
 .theme-switch button[aria-pressed='true'] { color: #141414; background: var(--accent); }
 @media (max-width: 760px) { .topbar-end { margin-left: auto; gap: 10px; } }
+
+/* Spoiler candidates */
+.results-table th .spoiler-note { color: var(--accent); font-weight: 700; }
+.primary-name small.primary-bolted { color: var(--accent); }

@@ -6,7 +6,7 @@ import { CORRECTED_SETTINGS, simulate } from '../src/engine/simulate';
 import { additionsText, estimatedVotes, partyResults, readLocation, stateVotes, stateVoteText, timelineUrl } from '../src/app/presentation';
 import { electoralTotals } from '../src/engine/states';
 
-const ON = { ...CORRECTED_SETTINGS, midterms: true, candidateTraits: true, primaries: true, runningMates: true, popularVote: true };
+const ON = { ...CORRECTED_SETTINGS, midterms: true, candidateTraits: true, primaries: true, runningMates: true, popularVote: true, spoilers: true };
 
 describe('state popular vote', () => {
   it('is off unless asked for', () => {
@@ -81,10 +81,10 @@ describe('state popular vote', () => {
   it('is on in the app by default and travels in share links as pv=0 when off', () => {
     expect(readLocation('?seed=3&year=1900').popularVote).toBe(true);
     const base = { seed: 3, year: 1900, corrections: RULES, dials: DEFAULT_DIALS, midterms: true, traits: true, primaries: true, runningMates: true };
-    const off = timelineUrl('https://example.test/', { ...base, popularVote: false });
+    const off = timelineUrl('https://example.test/', { ...base, popularVote: false, spoilers: false });
     expect(off.searchParams.get('pv')).toBe('0');
     expect(readLocation(off.search).popularVote).toBe(false);
-    expect(timelineUrl(off.href, { ...base, popularVote: true }).searchParams.has('pv')).toBe(false);
+    expect(timelineUrl(off.href, { ...base, popularVote: true, spoilers: true }).searchParams.has('pv')).toBe(false);
     expect(additionsText(false, false, false, false, true)).toBe('a state popular vote');
   });
 });

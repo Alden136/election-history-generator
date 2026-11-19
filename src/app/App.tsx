@@ -10,6 +10,7 @@ import { ElectionMap, ElectionResults, TermDetails, YearPicker } from './Electio
 import { Finder } from './Finder';
 import { ElectionRail, History } from './History';
 import { Icon } from './Icon';
+import { THEME_CHOICES, useTheme, type ThemeChoice } from './theme';
 import { Overview } from './Overview';
 import { PrimariesPanel } from './Primaries';
 import { Parties, Presidents, ProfileLinksContext } from './People';
@@ -26,6 +27,8 @@ import { additionsText, electionYears, MAX_SEED, parseSeed, presidentialYear, re
 import { MidtermResults } from './Midterm';
 import { midtermSummary } from './midtermView';
 import './styles.css';
+
+const THEME_LABELS: Record<ThemeChoice, string> = { light: 'Light theme', dark: 'Night concrete (dark theme)', system: 'Match my device' };
 
 const views = [
   { id: 'election', label: 'Election map', short: 'Map', icon: 'map' },
@@ -59,6 +62,7 @@ export function App() {
   const [saved, setSaved] = useState(() => loadSaved());
   // Popular votes as estimated counts (the default) or percentages; a display choice kept in this browser.
   const [voteDisplay, setVoteDisplay] = useState(readVoteDisplay);
+  const [theme, setTheme] = useTheme();
   const [draft, setDraft] = useState(String(seed));
   const [view, setView] = useState<View>('election');
   const [historyTab, setHistoryTab] = useState<HistoryTab>('elections');
@@ -233,7 +237,14 @@ export function App() {
             aria-label={item.label} onClick={() => openView(item.id)}><Icon name={item.icon} />
             <span className="nav-full">{item.label}</span><span className="nav-short">{item.short}</span></button>)}
         </nav>
-        <span className="topbar-range">1792 <i /> 2064</span>
+        <div className="topbar-end">
+          <span className="topbar-range">1792 <i /> 2064</span>
+          <div className="theme-switch" role="group" aria-label="Colour theme">
+            {THEME_CHOICES.map((choice) => <button key={choice} type="button" aria-pressed={theme === choice}
+              aria-label={THEME_LABELS[choice]} title={THEME_LABELS[choice]} onClick={() => setTheme(choice)}>
+              <Icon name={choice === 'light' ? 'sun' : choice === 'dark' ? 'moon' : 'monitor'} size={15} /></button>)}
+          </div>
+        </div>
       </div>
     </header>
     <VoteDisplayContext.Provider value={voteDisplay}>

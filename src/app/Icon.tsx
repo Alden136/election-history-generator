@@ -21,6 +21,9 @@ const paths = {
   close: <path d="m5 5 10 10m0-10L5 15" />,
   bookmark: <path d="M5.5 3h9v14L10 13.5 5.5 17z" />,
   search: <><circle cx="8.5" cy="8.5" r="4.5" /><path d="m12 12 4 4" /></>,
+  sun: <><circle cx="10" cy="10" r="3.2" /><path d="M10 2.5v2m0 11v2M2.5 10h2m11 0h2M4.7 4.7l1.4 1.4m7.8 7.8 1.4 1.4M4.7 15.3l1.4-1.4m7.8-7.8 1.4-1.4" /></>,
+  moon: <path d="M15.5 12.6A6.5 6.5 0 0 1 7.4 4.5a6.5 6.5 0 1 0 8.1 8.1z" />,
+  monitor: <><rect x="3" y="4" width="14" height="10" rx="1" /><path d="M7.5 17h5M10 14v3" /></>,
 } satisfies Record<string, ReactNode>;
 
 export function Icon({ name, size = 17 }: { name: keyof typeof paths; size?: number }) {

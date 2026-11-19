@@ -112,7 +112,7 @@ export function Finder({ settings, preset, year, openTimeline }: {
   return <section className="panel batch-panel finder" aria-labelledby="finder-title">
     <div className="history-controls">
       <div><h2 id="finder-title">Timeline finder</h2>
-        <p>{PRESET_LABELS[preset]}{settings.midterms ? ' · Midterms' : ''}{settings.candidateTraits ? ' · Traits' : ''}{settings.primaries ? ' · Primaries' : ''}{settings.runningMates ? ' · Running mates' : ''} · {changed ? `${changed} adjusted dials` : 'Default dials'} · Random starting seed</p></div>
+        <p>{PRESET_LABELS[preset]}{settings.midterms ? ' · Midterms' : ''}{settings.candidateTraits ? ' · Traits' : ''}{settings.primaries ? ' · Primaries' : ''}{settings.runningMates ? ' · Running mates' : ''}{settings.popularVote ? ' · State vote' : ''} · {changed ? `${changed} adjusted dials` : 'Default dials'} · Random starting seed</p></div>
     </div>
     <form className="finder-form" onSubmit={start}>
       <fieldset disabled={running}>
@@ -188,6 +188,7 @@ function FinderResults({ run, year, openTimeline, more }: {
     traits: run.settings.candidateTraits ?? false,
     primaries: run.settings.primaries ?? false,
     runningMates: run.settings.runningMates ?? false,
+    popularVote: run.settings.popularVote ?? false,
   });
   const open = (event: MouseEvent<HTMLAnchorElement>, seed: number) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

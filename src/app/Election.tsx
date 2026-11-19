@@ -10,7 +10,7 @@ import { geoBody, savePicture, tileBody, type Caption, type LegendItem, type Map
 import { PartyLink, PresidentLink } from './People';
 import { SaveImageButton } from './SaveImageButton';
 import { useVoteDisplay, type VoteDisplay } from './voteDisplay';
-import { CHARISMA_LABELS, EXPERIENCE_LABELS, successionText, traitEffects, approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
+import { CHARISMA_LABELS, EXPERIENCE_LABELS, popularVoteLeader, stateVoteText, successionText, traitEffects, approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
 import { justiceCount } from './court';
 
@@ -188,8 +188,10 @@ export function ElectionMap({ term, selected, select, caption }: {
   const label = (i: number) =>
     `${STATES[i]!.name}: ${stateResult(term, i)}${term.index ? `, ${grid.votes[i]} electoral votes` : ''}`;
   /** Hover text: the state's result, electoral votes and lean (when it has electoral votes). */
-  const tooltip = (i: number) =>
-    `${label(i)}${term.index > 0 && grid.votes[i]! > 0 ? `, lean ${signed(grid.lean[i]!)}` : ''}`;
+  const tooltip = (i: number) => {
+    const vote = stateVoteText(term, i);
+    return `${label(i)}${term.index > 0 && grid.votes[i]! > 0 ? `, lean ${signed(grid.lean[i]!)}` : ''}${vote ? `\n${vote}` : ''}`;
+  };
   const handlers = (i: number) => ({
     onMouseEnter: () => setHovered(i), onMouseLeave: () => setHovered(null),
     onFocus: () => setFocused(i), onBlur: () => setFocused(null),
@@ -252,6 +254,7 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
   // Each party's nominee when candidate traits are on.
   const nomineeOf = (party: number) => term.nominees?.find((nominee) => nominee.party === party);
   const winnerNominee = nomineeOf(term.winnerParty);
+  const pvLeader = popularVoteLeader(term);
   const mateOf = (party: number) => term.runningMates?.find((mate) => mate.party === party);
   const winnerMate = mateOf(term.winnerParty);
   // Electoral votes still cast (seceded states excluded). The sheet records none for 1792.
@@ -263,6 +266,7 @@ export function ElectionResults({ term, winnerIdeology, winnerBegan }: {
         <span>{term.index === 0 ? 'Founding election' : decidedByCongress(term) ? 'Decided by Congress' : 'Electoral majority'}</span>
       </div>
       <h3><PresidentLink name={term.winnerName} began={winnerBegan} /></h3>
+      {pvLeader !== null && pvLeader !== term.winnerParty && <p className="winner-split">Lost the popular vote to {partyName(pvLeader)}</p>}
       <p className="winner-ideology">{ideologyLabel(winnerIdeology)} <span>{signed(winnerIdeology)}</span></p>
       {/* Each tag shows a pop-up with the trait's effect on hover, or on focus for keyboards and touch. */}
       {winnerNominee && <p className="winner-traits" aria-label="Candidate traits">

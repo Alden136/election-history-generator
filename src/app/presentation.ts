@@ -40,6 +40,8 @@ export interface TimelineLocation {
   primaries: boolean;
   /** Running mates and succession, an addition that is on unless the link says vp=0. They only run with candidate traits on. */
   runningMates: boolean;
+  /** The state-by-state popular vote, an addition that is on unless the link says pv=0. */
+  popularVote: boolean;
 }
 
 export function readLocation(search: string): TimelineLocation {
@@ -60,10 +62,11 @@ export function readLocation(search: string): TimelineLocation {
     traits: params.get('traits') !== '0',
     primaries: params.get('primaries') !== '0',
     runningMates: params.get('vp') !== '0',
+    popularVote: params.get('pv') !== '0',
   };
 }
 
-export function timelineUrl(href: string, { seed, year, corrections, dials, midterms, traits, primaries, runningMates }: TimelineLocation): URL {
+export function timelineUrl(href: string, { seed, year, corrections, dials, midterms, traits, primaries, runningMates, popularVote }: TimelineLocation): URL {
   const url = new URL(href);
   url.searchParams.set('seed', String(seed));
   url.searchParams.set('year', String(year));
@@ -82,6 +85,8 @@ export function timelineUrl(href: string, { seed, year, corrections, dials, midt
   else url.searchParams.set('primaries', '0');
   if (runningMates) url.searchParams.delete('vp');
   else url.searchParams.set('vp', '0');
+  if (popularVote) url.searchParams.delete('pv');
+  else url.searchParams.set('pv', '0');
   return url;
 }
 
@@ -114,7 +119,7 @@ export function partyResults(term: Term) {
     // The founding row has a fixed winner share and no opposing popular tally.
     popular: term.index === 0
       ? term.winnerParty === index ? term.winnerPopularShare : null
-      : (term.electoral[index]! + 2 * term.support[index]!) / 3,
+      : term.popularVote ? term.popularVote[index]! : (term.electoral[index]! + 2 * term.support[index]!) / 3,
     ideology: term.shownIdeology[index]!,
     won: term.winnerParty === index,
   })).filter((p) => p.won || p.electoral > 0 || p.support > 0)
@@ -175,8 +180,9 @@ export function approximateCount(votes: number): string {
 }
 
 /** The additions switched on, in words: "midterm elections, candidate traits and primaries". Primaries and running mates count only with traits. */
-export function additionsText(midterms: boolean, traits: boolean, primaries = false, runningMates = false): string {
-  const on = [midterms && 'midterm elections', traits && 'candidate traits', traits && primaries && 'primaries', traits && runningMates && 'running mates'].filter((item): item is string => Boolean(item));
+export function additionsText(midterms: boolean, traits: boolean, primaries = false, runningMates = false, popularVote = false): string {
+  const on = [midterms && 'midterm elections', traits && 'candidate traits', traits && primaries && 'primaries', traits && runningMates && 'running mates',
+    popularVote && 'a state popular vote'].filter((item): item is string => Boolean(item));
   return on.length > 1 ? `${on.slice(0, -1).join(', ')} and ${on.at(-1)}` : on.join('');
 }
 
@@ -243,4 +249,18 @@ export const DEPARTURE_LABELS: Record<Departure, string> = { death: 'Died in off
 /** "Died in office in 1841; John Tyler took over" */
 export function successionText(succession: Succession): string {
   return `${DEPARTURE_LABELS[succession.cause]} in ${succession.year}; ${succession.successor} took over`;
+}
+
+/** The party that won the most votes nationally, when the state popular vote is on. */
+export function popularVoteLeader(term: Term): number | null {
+  return term.popularVote ? term.popularVote.indexOf(Math.max(...term.popularVote)) : null;
+}
+
+/** The two leading parties in a state, with the margin: "Union 54.2%, Whig 41.0% · won by 13.2 points". Null without vote shares. */
+export function stateVoteText(term: Term, state: number): string | null {
+  const shares = term.grid.voteShares?.[state];
+  if (!shares?.length) return null;
+  const [first, second] = shares.map((share, party) => ({ share, party })).sort((a, b) => b.share - a.share);
+  const top = [first, second].filter((entry) => entry && entry.share > 0).map((entry) => `${PARTIES[entry!.party]!.name} ${percent(entry!.share)}`);
+  return `${top.join(', ')} · won by ${((first!.share - (second?.share ?? 0)) * 100).toFixed(1)} points`;
 }

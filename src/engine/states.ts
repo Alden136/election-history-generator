@@ -9,6 +9,7 @@
  */
 import { HOME_STATE_BONUS } from './candidates';
 import { RUNNING_MATE_HOME_BONUS } from './succession';
+import { stateShares } from './popularVote';
 import {
   CENSUS_ELECTIONS,
   NAMED_PARTY_COUNT,
@@ -21,7 +22,7 @@ import {
   stateIndex,
 } from './data';
 import { NO_VOTE, SECEDED, type Context, type Expansions, type StateGrid, type StateWinner } from './types';
-import { argMin, clamp, safeDiv, sum } from './util';
+import { argMax, argMin, clamp, safeDiv, sum } from './util';
 
 const VIRGINIA = stateIndex('VA');
 const DC = stateIndex('DC');
@@ -209,6 +210,8 @@ export function nextWinners(
   votes: readonly number[],
   input: VotingInput,
   ctx: Context,
+  /** With the state popular vote on: filled with each voting state's shares, and the plurality wins. */
+  shares?: number[][],
 ): StateWinner[] {
   const { rng, dials, corrections } = ctx;
   const secededBefore = prev.winners.filter((w) => w === SECEDED).length;
@@ -230,7 +233,8 @@ export function nextWinners(
     ) {
       return SECEDED;
     }
-    if (existed && rng.next() < dials.partyLoyalty) {
+    // With the state popular vote on, loyalty is a pull in the vote instead of a coin flip.
+    if (!shares && existed && rng.next() < dials.partyLoyalty) {
       const check = loyaltyParty(last, corrections);
       if (check !== undefined && input.support[check]! > 0) return last;
     }
@@ -242,7 +246,11 @@ export function nextWinners(
         Math.abs(input.shownIdeology[p]! - lean[i]!) - input.support[p]! * dials.partyVictoryBoost + penalty[p]! - home,
       );
     }
-    return argMin(scores);
+    if (!shares) return argMin(scores);
+    // A party the sheet rules out (no support) gets no votes.
+    const state = stateShares({ scores: scores.map((score, p) => (penalty[p]! > 0 ? Infinity : score)), last: last >= 0 && (input.support[last] ?? 0) > 0 ? last : -1 }, ctx);
+    shares[i] = state;
+    return argMax(state);
   });
 }
 
@@ -270,9 +278,11 @@ export function nextGrid(prev: StateGrid, input: GridInput, ctx: Context): State
     votes = nextVotes(election, election - 4, prev.votes, input.expansions, ctx);
   }
 
-  const winners = nextWinners(prev, lean, votes, input, ctx);
+  const voteShares: number[][] | undefined = ctx.popularVote ? STATES.map(() => []) : undefined;
+  const winners = nextWinners(prev, lean, votes, input, ctx, voteShares);
   const { total, seceded, votingStates } = electoralTotals({ winners, votes });
   return {
+    ...(voteShares && { voteShares }),
     expansions: input.expansions,
     expanded: input.expanded,
     winners,

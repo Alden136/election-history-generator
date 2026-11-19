@@ -26,6 +26,8 @@ export interface Settings {
   primaries?: boolean;
   /** Running mates and succession: an addition the spreadsheet does not have, off unless true; needs candidate traits. */
   runningMates?: boolean;
+  /** A real state-by-state popular vote: an addition the spreadsheet does not have, off unless true. */
+  popularVote?: boolean;
 }
 
 /** Who carried a state: a party index (0-14), or one of the two special values. */
@@ -62,6 +64,8 @@ export interface StateGrid {
   secededVotes: number;
   /** Number of states that voted for a party. */
   votingStates: number;
+  /** State popular vote addition: each state's vote share by party (15 entries), empty where the state did not vote. */
+  voteShares?: number[][];
 }
 
 /**
@@ -136,6 +140,8 @@ export interface Term {
   vicePresident: string | null;
   /** The president leaving office early this term and the vice president taking over; null when they served it out. */
   succession: Succession | null;
+  /** The national popular vote by party when the state popular vote is on; null otherwise and for 1792. */
+  popularVote: number[] | null;
 
   /** The Congress elected two years into this term, when midterms are on; null otherwise and for the founding term. */
   midterm: MidtermCongress | null;
@@ -157,6 +163,7 @@ export interface Context {
   primaries?: boolean;
   /** Running mates and succession, only ever true together with candidateTraits. */
   runningMates?: boolean;
+  popularVote?: boolean;
   /** The timeline's seed, for traits rolled without the shared random numbers. */
   seed?: number;
 }

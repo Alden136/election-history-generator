@@ -28,6 +28,8 @@ export interface ChapterFacts {
   changes: number[];
   /** Elections Congress decided because no party won a majority of the Electoral College. */
   contingent: number[];
+  /** Elections the voters decided in which the winner lost the popular vote (state popular vote addition). */
+  popularLosers: { election: number; name: string; party: number }[];
   /** The winner's largest and smallest Electoral College share, among elections decided by the voters. */
   landslide: { election: number; name: string; party: number; share: number } | null;
   closest: { election: number; name: string; party: number; share: number } | null;
@@ -143,6 +145,8 @@ export function chapterFacts(timeline: Timeline, chapter: number): ChapterFacts 
     elections: electionRows.map((t) => t.election),
     changes: electionRows.filter((t) => t.index > 0 && t.result === 'LOSS').map((t) => t.election),
     contingent: electionRows.filter((t) => t.index > 0 && Math.max(...t.electoral) <= 0.5).map((t) => t.election),
+    popularLosers: decidedByVoters.filter((t) => t.popularVote && t.popularVote.indexOf(Math.max(...t.popularVote)) !== t.winnerParty)
+      .map((t) => ({ election: t.election, name: t.winnerName, party: t.winnerParty })),
     landslide: pick((a, b) => a.winnerElectoralShare > b.winnerElectoralShare),
     closest: pick((a, b) => a.winnerElectoralShare < b.winnerElectoralShare),
     rose, fell,
@@ -273,6 +277,9 @@ function elections(facts: ChapterFacts): string | null {
   }
   if (facts.contingent.length) {
     sentences.push(`No party won a majority of the Electoral College in ${list(facts.contingent.map(String))}, so Congress chose the president.`);
+  }
+  for (const loser of facts.popularLosers) {
+    sentences.push(`In ${loser.election}, ${loser.name} (${party(loser.party)}) won the presidency despite losing the popular vote.`);
   }
   if (facts.landslide && facts.closest && facts.landslide.election !== facts.closest.election) {
     sentences.push(`The biggest win came in ${facts.landslide.election}, when ${facts.landslide.name} (${party(facts.landslide.party)}) took ${percent(facts.landslide.share)} of the Electoral College; the narrowest was ${facts.closest.election}, won by ${facts.closest.name} with ${percent(facts.closest.share)}.`);

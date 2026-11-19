@@ -4,7 +4,7 @@ import { NO_VOTE, SECEDED, type Term } from '../engine/types';
 import { Icon } from './Icon';
 import { Dot } from './Party';
 import { PartyLink } from './People';
-import { NO_VOTE_COLOR, PARTY_COLORS, SECEDED_COLOR, signed } from './presentation';
+import { NO_VOTE_COLOR, PARTY_COLORS, SECEDED_COLOR, signed, stateVoteText } from './presentation';
 import { stateHistory, stateStory, yearRange, type StateResult } from './stateHistory';
 
 const TICKS = [1792, 1840, 1880, 1920, 1960, 2000, 2040];
@@ -30,6 +30,9 @@ export function StatePanel({ terms, state, year, chooseYear, close }: {
   const { results, parties, longestStreak, peak } = history;
   const now = results.find((result) => result.election === year)!;
   const favorite = parties[0];
+  // The state's vote that year, when the state popular vote is on.
+  const voteTerm = terms.find((term) => term.election === year);
+  const voteText = voteTerm ? stateVoteText(voteTerm, state) : null;
   // Elections it voted in, up to and including the selected one.
   const soFar = results.filter((result) => result.election <= year && result.winner >= 0);
 
@@ -56,7 +59,8 @@ export function StatePanel({ terms, state, year, chooseYear, close }: {
     </div>
     <dl className="state-stats">
       <div><dt className="eyebrow">In {year}</dt>
-        <dd>{now.winner >= 0 ? <PartyLink party={now.winner} /> : outcome(now)}</dd><small>{nowDetail}</small></div>
+        <dd>{now.winner >= 0 ? <PartyLink party={now.winner} /> : outcome(now)}</dd><small>{nowDetail}</small>
+        {voteText && <small className="state-vote">{voteText}</small>}</div>
       <div><dt className="eyebrow">First voted</dt>
         <dd>{history.firstVote ?? 'Never'}</dd><small>Voted in {history.voted} of {elections(results.length)}</small></div>
       <div><dt className="eyebrow">Backed the winner so far</dt>

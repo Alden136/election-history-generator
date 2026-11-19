@@ -68,14 +68,16 @@ const descriptions: Record<Rule, { title: string; detail: string }> = {
   },
 };
 
-export function RuleSettings({ corrections, midterms, traits, primaries, runningMates, voteDisplay, apply, dismiss }: {
+export function RuleSettings({ corrections, midterms, traits, primaries, runningMates, popularVote, voteDisplay, apply, dismiss }: {
   corrections: readonly Rule[];
   midterms: boolean;
   traits: boolean;
   primaries: boolean;
   runningMates: boolean;
+  popularVote: boolean;
   voteDisplay: VoteDisplay;
-  apply: (rules: readonly Rule[], voteDisplay: VoteDisplay, midterms: boolean, traits: boolean, primaries: boolean, runningMates: boolean) => void;
+  apply: (rules: readonly Rule[], voteDisplay: VoteDisplay, midterms: boolean, traits: boolean, primaries: boolean, runningMates: boolean,
+    popularVote: boolean) => void;
   dismiss: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -85,6 +87,7 @@ export function RuleSettings({ corrections, midterms, traits, primaries, running
   const [withTraits, setWithTraits] = useState(traits);
   const [withPrimaries, setWithPrimaries] = useState(primaries);
   const [withRunningMates, setWithRunningMates] = useState(runningMates);
+  const [withPopularVote, setWithPopularVote] = useState(popularVote);
   const preset = rulePreset(draft);
 
   useEffect(() => {
@@ -99,7 +102,7 @@ export function RuleSettings({ corrections, midterms, traits, primaries, running
     <dialog className="rule-dialog" ref={dialog} aria-labelledby="rules-title" onClose={dismiss}>
       <form onSubmit={(event) => {
         event.preventDefault();
-        apply(RULES.filter((rule) => draft.includes(rule)), display, withMidterms, withTraits, withPrimaries, withRunningMates);
+        apply(RULES.filter((rule) => draft.includes(rule)), display, withMidterms, withTraits, withPrimaries, withRunningMates, withPopularVote);
         dialog.current?.close();
       }}>
         <header className="rule-heading">
@@ -161,6 +164,15 @@ export function RuleSettings({ corrections, midterms, traits, primaries, running
               <input type="checkbox" role="switch" checked={withTraits && withRunningMates} disabled={!withTraits}
                 onChange={(event) => setWithRunningMates(event.target.checked)} aria-label="Running mates and succession"
                 aria-describedby="rule-running-mates" />
+            </label>
+            <label className="rule-row">
+              <span><strong>State popular vote</strong><small id="rule-popular-vote">Every state counts its votes: each party's
+                share comes from how close it is to the state, its national support, home states, the state's loyalty to last
+                time's winner and some chance. The plurality wins the state, and the national popular vote adds the states up,
+                so a president can win while losing the popular vote. On by default; switch this off to match the
+                spreadsheet.</small></span>
+              <input type="checkbox" role="switch" checked={withPopularVote} onChange={(event) => setWithPopularVote(event.target.checked)}
+                aria-label="State popular vote" aria-describedby="rule-popular-vote" />
             </label>
           </fieldset>
           <fieldset className="rule-list">

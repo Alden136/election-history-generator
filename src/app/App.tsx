@@ -45,7 +45,7 @@ type HistoryTab = typeof historyTabs[number]['id'];
 
 export function App() {
   const [location, setLocation] = useState(() => readLocation(window.location.search));
-  const { seed, year, corrections, dials, midterms, traits, primaries, runningMates } = location;
+  const { seed, year, corrections, dials, midterms, traits, primaries, runningMates, popularVote } = location;
   // Primaries and running mates only run with candidate traits on.
   const withPrimaries = traits && primaries;
   const withRunningMates = traits && runningMates;
@@ -72,13 +72,13 @@ export function App() {
   const shareTimer = useRef<number | undefined>(undefined);
   const shareRequest = useRef(0);
   const main = useRef<HTMLElement>(null);
-  const settings = useMemo(() => ({ dials, corrections, midterms, candidateTraits: traits, primaries: withPrimaries, runningMates: withRunningMates }),
-    [dials, corrections, midterms, traits, withPrimaries, withRunningMates]);
+  const settings = useMemo(() => ({ dials, corrections, midterms, candidateTraits: traits, primaries: withPrimaries, runningMates: withRunningMates, popularVote }),
+    [dials, corrections, midterms, traits, withPrimaries, withRunningMates, popularVote]);
   const timeline = useMemo(() => simulate(seed, settings), [seed, settings]);
   const adjusted = modifiedDials(dials).length;
-  const timelineKey = `${seed}/${corrections.join(',')}/${encodeDials(dials)}/${midterms ? 'midterms' : ''}/${traits ? 'traits' : ''}/${withPrimaries ? 'primaries' : ''}/${withRunningMates ? 'vp' : ''}`;
-  const additions = additionsText(midterms, traits, primaries, runningMates);
-  const additionCount = Number(midterms) + Number(traits) + Number(withPrimaries) + Number(withRunningMates);
+  const timelineKey = `${seed}/${corrections.join(',')}/${encodeDials(dials)}/${midterms ? 'midterms' : ''}/${traits ? 'traits' : ''}/${withPrimaries ? 'primaries' : ''}/${withRunningMates ? 'vp' : ''}/${popularVote ? 'pv' : ''}`;
+  const additions = additionsText(midterms, traits, primaries, runningMates, popularVote);
+  const additionCount = Number(midterms) + Number(traits) + Number(withPrimaries) + Number(withRunningMates) + Number(popularVote);
   // A midterm year shows the Congress elected then; everything else follows the presidential election before it.
   const electionYear = presidentialYear(year);
   const isMidterm = year !== electionYear;
@@ -330,9 +330,10 @@ export function App() {
     </main>
     </ProfileLinksContext.Provider>
     </VoteDisplayContext.Provider>
-    {rulesOpen && <RuleSettings corrections={corrections} midterms={midterms} traits={traits} primaries={primaries} runningMates={runningMates} voteDisplay={voteDisplay}
-      apply={(selected, display, withMidterms, withTraits, withPrimaryRaces, withTickets) => {
-      navigate({ corrections: selected, midterms: withMidterms, traits: withTraits, primaries: withPrimaryRaces, runningMates: withTickets, ...(withMidterms ? {} : { year: electionYear }) });
+    {rulesOpen && <RuleSettings corrections={corrections} midterms={midterms} traits={traits} primaries={primaries} runningMates={runningMates} popularVote={popularVote} voteDisplay={voteDisplay}
+      apply={(selected, display, withMidterms, withTraits, withPrimaryRaces, withTickets, withStateVote) => {
+      navigate({ corrections: selected, midterms: withMidterms, traits: withTraits, primaries: withPrimaryRaces, runningMates: withTickets,
+        popularVote: withStateVote, ...(withMidterms ? {} : { year: electionYear }) });
       setVoteDisplay(display);
       storeVoteDisplay(display);
     }}

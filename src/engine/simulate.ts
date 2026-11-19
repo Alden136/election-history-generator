@@ -5,6 +5,7 @@
  * formulas depend on each other. The same seed always gives the same result.
  */
 import { chooseNominees, homeStates, nameLists, supportWithNominees } from './candidates';
+import { nationalVote } from './popularVote';
 import { chooseRunningMates, rollSuccession, runningMateHomes, SUCCESSION_MOOD } from './succession';
 import { holdPrimaries, nomineePosition, partyAfterPrimaries, supportAfterPrimaries } from './primaries';
 import { electCongress, electMidterm, electPresident } from './congress';
@@ -67,6 +68,8 @@ export interface Timeline {
   primaries: boolean;
   /** True when running mates and succession were simulated (only ever with candidate traits). */
   runningMates: boolean;
+  /** True when the state-by-state popular vote was simulated. */
+  popularVote: boolean;
   /** One entry per election, 1792 first. */
   terms: Term[];
   /** The president inaugurated in 2065, after the last election. */
@@ -160,6 +163,7 @@ function firstTerm(ctx: Context): Term {
     runningMates: null,
     vicePresident: null,
     succession: null,
+    popularVote: null,
     court: [...START_COURT],
     courtAverage: courtAverage(START_COURT),
     grid: initialGrid(),
@@ -291,6 +295,7 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
     ctx,
   );
   const winnerElectoralShare = electoral[winnerParty]!;
+  const popularVote = grid.voteShares ? nationalVote(grid.voteShares, grid.votes) : null;
 
   return {
     index,
@@ -308,7 +313,8 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
     winnerParty,
     winnerName: winner,
     winnerElectoralShare,
-    winnerPopularShare: (winnerElectoralShare + 2 * support[winnerParty]!) / 3,
+    // With the state popular vote on, the winner's share of the real count; otherwise the sheet's blend.
+    winnerPopularShare: popularVote ? popularVote[winnerParty]! : (winnerElectoralShare + 2 * support[winnerParty]!) / 3,
     electoral,
     support,
     shownIdeology,
@@ -323,6 +329,7 @@ function nextTerm(history: readonly Term[], ctx: Context): Term {
     runningMates,
     vicePresident,
     succession,
+    popularVote,
     midterm,
     strength,
     strengthThird,
@@ -348,7 +355,8 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
   const candidateTraits = settings.candidateTraits === true;
   const primaries = candidateTraits && settings.primaries === true;
   const runningMates = candidateTraits && settings.runningMates === true;
-  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms, candidateTraits, primaries, runningMates, seed };
+  const popularVote = settings.popularVote === true;
+  const ctx: Context = { rng: createRng(seed), dials: settings.dials, corrections: new Set(corrections), midterms, candidateTraits, primaries, runningMates, popularVote, seed };
 
   const terms: Term[] = [firstTerm(ctx)];
   while (terms.length < ELECTIONS.length) terms.push(nextTerm(terms, ctx));
@@ -388,6 +396,7 @@ export function simulate(seed: number, settings: Settings = DEFAULT_SETTINGS): T
     candidateTraits,
     primaries,
     runningMates,
+    popularVote,
     terms,
     finalPresident,
     finalExpansions,

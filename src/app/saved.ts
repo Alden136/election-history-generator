@@ -78,9 +78,9 @@ export function suggestedName({ seed, year }: TimelineLocation): string {
 
 /** "Seed 42 · 2024 · Corrected · 2 dials adjusted" */
 export function describeSaved(saved: SavedTimeline): string {
-  const { seed, year, corrections, dials, midterms, traits, primaries, runningMates } = locationOf(saved);
+  const { seed, year, corrections, dials, midterms, traits, primaries, runningMates, popularVote } = locationOf(saved);
   const adjusted = modifiedDials(dials).length;
-  return [`Seed ${seed}`, String(year), PRESET_LABELS[rulePreset(corrections)], ...(midterms ? ['Midterms'] : []), ...(traits ? ['Traits'] : []), ...(traits && primaries ? ['Primaries'] : []), ...(traits && runningMates ? ['Running mates'] : []),
+  return [`Seed ${seed}`, String(year), PRESET_LABELS[rulePreset(corrections)], ...(midterms ? ['Midterms'] : []), ...(traits ? ['Traits'] : []), ...(traits && primaries ? ['Primaries'] : []), ...(traits && runningMates ? ['Running mates'] : []), ...(popularVote ? ['State vote'] : []),
     ...(adjusted ? [`${adjusted} ${adjusted === 1 ? 'dial' : 'dials'} adjusted`] : [])].join(' · ');
 }
 

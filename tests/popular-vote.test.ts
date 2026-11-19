@@ -3,7 +3,8 @@ import { DEFAULT_DIALS } from '../src/engine/data';
 import { nationalVote, popularWeight, stateMargin } from '../src/engine/popularVote';
 import { RULES } from '../src/engine/rules';
 import { CORRECTED_SETTINGS, simulate } from '../src/engine/simulate';
-import { additionsText, partyResults, readLocation, stateVoteText, timelineUrl } from '../src/app/presentation';
+import { additionsText, estimatedVotes, partyResults, readLocation, stateVotes, stateVoteText, timelineUrl } from '../src/app/presentation';
+import { electoralTotals } from '../src/engine/states';
 
 const ON = { ...CORRECTED_SETTINGS, midterms: true, candidateTraits: true, primaries: true, runningMates: true, popularVote: true };
 
@@ -85,5 +86,25 @@ describe('state popular vote', () => {
     expect(readLocation(off.search).popularVote).toBe(false);
     expect(timelineUrl(off.href, { ...base, popularVote: true }).searchParams.has('pv')).toBe(false);
     expect(additionsText(false, false, false, false, true)).toBe('a state popular vote');
+  });
+});
+
+describe('votes in one state', () => {
+  it('names each candidate, sorts by votes, and adds up to the national counts', () => {
+    const term = simulate(42, ON).terms[30]!;
+    const live = electoralTotals(term.grid).live;
+    const totals = new Map<number, number>();
+    term.grid.winners.forEach((winner, state) => {
+      const vote = stateVotes(term, state);
+      if (winner < 0) { expect(vote).toBeNull(); return; }
+      expect(vote!.rows[0]!.party).toBe(winner);
+      expect(vote!.rows.map((row) => row.votes)).toEqual([...vote!.rows.map((row) => row.votes)].sort((a, b) => b - a));
+      for (const row of vote!.rows) {
+        expect(row.candidate).toBe(term.nominees!.find((nominee) => nominee.party === row.party)!.name);
+        totals.set(row.party, (totals.get(row.party) ?? 0) + row.votes);
+      }
+    });
+    for (const [party, votes] of totals) expect(votes).toBeCloseTo(estimatedVotes(term, term.popularVote![party]!, live), 3);
+    expect(stateVotes(simulate(42, CORRECTED_SETTINGS).terms[30]!, 0)).toBeNull();
   });
 });

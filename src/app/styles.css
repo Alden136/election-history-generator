@@ -854,3 +854,13 @@ html:has(.rule-dialog[open]) { overflow: hidden; }
 /* State popular vote */
 .winner-split { display: inline-block; margin: 0 0 6px; padding: 1px 6px; background: var(--accent); color: #141414; font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; }
 .state-vote { display: block; margin-top: 2px; }
+
+/* Votes in one state */
+.state-votes { padding: 14px 15px 4px; border-top: 3px solid var(--line); }
+.state-votes-table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 13px; }
+.state-votes-table thead th { padding: 0 8px 6px 0; color: var(--muted); font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; text-align: left; border-bottom: 1px solid var(--line); }
+.state-votes-table td, .state-votes-table tbody th { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--hair); text-align: left; font-weight: 600; }
+.state-votes-table tbody th { position: relative; font-weight: 700; }
+.state-votes-table tbody tr[data-won] th { font-weight: 900; }
+.state-votes-table td:nth-child(3), .state-votes-table td:nth-child(4), .state-votes-table thead th:nth-child(3), .state-votes-table thead th:nth-child(4) { text-align: right; font-family: var(--mono); }
+.state-votes-table tbody tr { background: linear-gradient(var(--party), var(--party)) bottom left / var(--share) 3px no-repeat; }

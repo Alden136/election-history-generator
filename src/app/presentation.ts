@@ -5,6 +5,8 @@ import type { Dials, Term } from '../engine/types';
 import { CHARISMA_STEP, EXPERIENCE_STEP, HOME_STATE_BONUS, INCUMBENT_EDGE, type Nominee } from '../engine/candidates';
 import type { Fight, Primary, Wing } from '../engine/primaries';
 import type { Departure, Succession } from '../engine/succession';
+import { popularWeight } from '../engine/popularVote';
+import { electoralTotals } from '../engine/states';
 import { encodeDials, parseDials } from './dials';
 
 export const DEFAULT_SEED = 42;
@@ -263,4 +265,31 @@ export function stateVoteText(term: Term, state: number): string | null {
   const [first, second] = shares.map((share, party) => ({ share, party })).sort((a, b) => b.share - a.share);
   const top = [first, second].filter((entry) => entry && entry.share > 0).map((entry) => `${PARTIES[entry!.party]!.name} ${percent(entry!.share)}`);
   return `${top.join(', ')} · won by ${((first!.share - (second?.share ?? 0)) * 100).toFixed(1)} points`;
+}
+
+export interface StateVoteRow {
+  party: number;
+  /** The party's nominee, when candidate traits are on. */
+  candidate: string | null;
+  share: number;
+  /** Estimated votes, on the same scale as the national counts. */
+  votes: number;
+}
+
+/**
+ * How many votes each party's candidate won in a state, most first. Counts are
+ * estimates: the national estimate (real turnout for the year) split between
+ * the states by the same weight the national vote uses, so the states add up
+ * to the national totals. Null without the state popular vote.
+ */
+export function stateVotes(term: Term, state: number): { cast: number; rows: StateVoteRow[] } | null {
+  const all = term.grid.voteShares;
+  const shares = all?.[state];
+  if (!all || !shares?.length) return null;
+  const weight = all.reduce((total, s, i) => total + (s.length ? popularWeight(term.grid.votes[i]!) : 0), 0);
+  const cast = estimatedVotes(term, 1, electoralTotals(term.grid).live) * popularWeight(term.grid.votes[state]!) / weight;
+  const rows = shares.map((share, party) => ({
+    party, share, votes: share * cast, candidate: term.nominees?.find((nominee) => nominee.party === party)?.name ?? null,
+  })).filter((row) => row.share > 0).sort((a, b) => b.share - a.share);
+  return { cast, rows };
 }

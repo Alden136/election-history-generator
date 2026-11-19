@@ -4,7 +4,7 @@ import { NO_VOTE, SECEDED, type Term } from '../engine/types';
 import { Icon } from './Icon';
 import { Dot } from './Party';
 import { PartyLink } from './People';
-import { NO_VOTE_COLOR, PARTY_COLORS, SECEDED_COLOR, signed, stateVoteText } from './presentation';
+import { approximateCount, NO_VOTE_COLOR, PARTY_COLORS, percent, SECEDED_COLOR, signed, stateVotes, stateVoteText } from './presentation';
 import { stateHistory, stateStory, yearRange, type StateResult } from './stateHistory';
 
 const TICKS = [1792, 1840, 1880, 1920, 1960, 2000, 2040];
@@ -33,6 +33,7 @@ export function StatePanel({ terms, state, year, chooseYear, close }: {
   // The state's vote that year, when the state popular vote is on.
   const voteTerm = terms.find((term) => term.election === year);
   const voteText = voteTerm ? stateVoteText(voteTerm, state) : null;
+  const vote = voteTerm ? stateVotes(voteTerm, state) : null;
   // Elections it voted in, up to and including the selected one.
   const soFar = results.filter((result) => result.election <= year && result.winner >= 0);
 
@@ -77,6 +78,23 @@ export function StatePanel({ terms, state, year, chooseYear, close }: {
       <div><dt className="eyebrow">Most electoral votes</dt>
         <dd>{peak ? peak.votes : '—'}</dd><small>{peak ? `First reached in ${peak.election}` : 'Never had any'}</small></div>
     </dl>
+    {vote && <div className="state-votes">
+      <div className="state-chart-heading">
+        <span className="eyebrow">The {year} vote in {name}</span>
+        <small title="Estimated from real US turnout for this year, scaled to this timeline's electoral votes">
+          ≈ {approximateCount(vote.cast)} votes cast · estimated</small>
+      </div>
+      <table className="state-votes-table" aria-label={`Votes in ${name} in ${year}`}>
+        <thead><tr><th scope="col">Candidate</th><th scope="col">Party</th><th scope="col">Votes</th><th scope="col">Share</th></tr></thead>
+        <tbody>{vote.rows.map((row, i) => <tr key={row.party} data-won={i === 0 || undefined}
+          style={{ '--share': percent(row.share), '--party': PARTY_COLORS[row.party] } as CSSProperties}>
+          <th scope="row">{row.candidate ?? partyName(row.party)}</th>
+          <td><PartyLink party={row.party} /></td>
+          <td>{approximateCount(row.votes)}</td>
+          <td>{percent(row.share)}</td>
+        </tr>)}</tbody>
+      </table>
+    </div>}
     <div className="state-chart">
       <div className="state-chart-heading">
         <span className="eyebrow">How it voted, {results[0]!.election}–{results.at(-1)!.election}</span>

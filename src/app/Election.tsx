@@ -10,7 +10,7 @@ import { geoBody, savePicture, tileBody, type Caption, type LegendItem, type Map
 import { PartyLink, PresidentLink } from './People';
 import { SaveImageButton } from './SaveImageButton';
 import { useVoteDisplay, type VoteDisplay } from './voteDisplay';
-import { CHARISMA_LABELS, EXPERIENCE_LABELS, popularVoteLeader, stateVoteText, successionText, traitEffects, approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, inkOn, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
+import { CHARISMA_LABELS, EXPERIENCE_LABELS, popularVoteLeader, stateVoteText, successionText, traitEffects, approximateCount, compactCount, decidedByCongress, estimatedVotes, isMidtermYear, NO_VOTE_COLOR, PARTY_COLORS, partyResults, percent, SECEDED_COLOR, signed, estimatedWinnerVotes } from './presentation';
 import { TERRITORIES, TERRITORY_NAMES } from './timelineFinder';
 import { justiceCount } from './court';
 
@@ -56,7 +56,9 @@ function GeoMap({ term, active, selected, fill, kind, label, tooltip, handlers }
     event.preventDefault();
     if (!event.repeat) handlers(i).onClick!();
   };
-  const textColor = (i: number) => kind(i) === 'absent' ? '#4a4741' : kind(i) === 'seceded' ? '#f4f2ee' : inkOn(fill(i));
+  // Theme colours, so labels on states that did not vote stay readable in Night concrete.
+  // Party states all get white labels; the outline in styles.css keeps them readable on light party colours.
+  const textColor = (i: number) => kind(i) === 'absent' ? 'var(--absent-ink)' : '#f4f2ee';
   const mapShapes = useMapShapes();
   if (!mapShapes) return <div className="geo-map geo-loading" role="status">Loading map…</div>;
   // West Virginia only exists once Virginia has seceded; until then Virginia is drawn whole.
@@ -95,14 +97,14 @@ function GeoMap({ term, active, selected, fill, kind, label, tooltip, handlers }
         <line x1={x1} y1={y1} x2={x2} y2={y2} />
         <rect x={bx} y={by} width={bw} height={bh}
           fill={kind(i) === 'seceded' ? 'url(#seceded-hatch)' : kind(i) === 'absent' ? undefined : fill(i)} />
-        <text x={bx + bw / 2} y={by + bh / 2 + 4.5} fill={textColor(i)}>{state.code}</text>
+        <text x={bx + bw / 2} y={by + bh / 2 + 4.5} fill={textColor(i)} data-kind={kind(i)}>{state.code}</text>
       </g>;
     })}
     {STATES.map((state, i) => {
       if (!drawn(state.code)) return null;
       const { label: at, labelOutside } = shapeOf(state.code);
-      return at ? <text key={state.code} className="geo-label" x={at[0]} y={at[1] + 5}
-        fill={labelOutside ? 'var(--muted)' : textColor(i)}>{state.code}</text> : null;
+      return at ? <text key={state.code} className="geo-label" x={at[0]} y={at[1] + 5} data-kind={labelOutside ? 'outside' : kind(i)}
+        fill={labelOutside ? 'var(--text)' : textColor(i)}>{state.code}</text> : null;
     })}
     {/* The hovered or selected state, outlined on top of its neighbours. */}
     {active !== null && drawn(STATES[active]!.code) && <path className="geo-outline" d={shapeOf(STATES[active]!.code).d} />}
@@ -228,7 +230,7 @@ export function ElectionMap({ term, selected, select, caption }: {
               gridColumn: state.tile.col + 1,
               gridRow: state.tile.row + 1,
               '--tile-color': fill(i),
-              '--tile-ink': kind(i) === 'party' ? inkOn(fill(i)) : undefined,
+              '--tile-ink': kind(i) === 'party' ? '#f4f2ee' : undefined,
             } as CSSProperties;
             return <button key={state.code} type="button" className="tile" data-kind={kind(i)}
               data-active={active === i} aria-pressed={selected === i} style={tileStyle} aria-label={label(i)} title={tooltip(i)} {...handlers(i)}>

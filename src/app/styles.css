@@ -70,6 +70,7 @@
   --absent: #d2cec7;
   --absent-edge: #5d5a54;
   --absent-ink: #4a4741;
+  --map-line: #141414;
   --gridline: #8c8880;
   --backdrop: #2b2a27b8;
   /* Cast-concrete grain: fine noise plus faint formwork board lines. */
@@ -103,12 +104,14 @@
   --loss: #ff7a6b;
   --sea: #1b1a17;
   --sea-grid: #ffffff0d;
-  --land: #3b3934;
-  --land-edge: #57534c;
-  --inset: #2a2825;
-  --absent: #4b4843;
-  --absent-edge: #77736b;
-  --absent-ink: #d6d2ca;
+  /* Land outside the country stays dark; states that did not vote are lighter, as in the light theme. */
+  --land: #302e2a;
+  --land-edge: #4a4741;
+  --inset: #262421;
+  --absent: #625e57;
+  --absent-edge: #86827a;
+  --absent-ink: #f0ece5;
+  --map-line: #8f8a81;
   --gridline: #5a5650;
   --backdrop: #000000c4;
 }
@@ -257,13 +260,17 @@ a { color: inherit; }
 .geo-map { display: block; width: 100%; height: auto; overflow: visible; }
 .geo-loading { display: grid; place-items: center; aspect-ratio: 960 / 731; color: var(--muted); font: 600 12px var(--mono); text-transform: uppercase; }
 .geo-background { fill: var(--land); stroke: var(--land-edge); stroke-width: .6; }
-.geo-inset { fill: var(--inset); stroke: #141414; stroke-width: 1.5; }
+.geo-inset { fill: var(--inset); stroke: var(--map-line); stroke-width: 1.5; }
 .geo-state { stroke: #141414; stroke-width: 1.1; stroke-linejoin: miter; cursor: pointer; outline: none; }
 .geo-state[data-kind='absent'] { fill: var(--absent); stroke: var(--absent-edge); stroke-width: .8; }
 .geo-state:focus-visible { stroke: var(--accent); stroke-width: 3; }
 .geo-label { font: 700 14px var(--mono); text-anchor: middle; pointer-events: none; }
+/* White labels on party colours, outlined so they read on light ones too. */
+.geo-label[data-kind='party'], .geo-label[data-kind='seceded'], .geo-callout text[data-kind='party'], .geo-callout text[data-kind='seceded'] {
+  paint-order: stroke; stroke: #141414; stroke-width: 3px; stroke-linejoin: round; }
+.tile[data-kind='party'] span { text-shadow: -1px -1px 0 #141414, 1px -1px 0 #141414, -1px 1px 0 #141414, 1px 1px 0 #141414; }
 .geo-callout { cursor: pointer; }
-.geo-callout line { stroke: #141414; stroke-width: 1; }
+.geo-callout line { stroke: var(--map-line); stroke-width: 1; }
 .geo-callout rect { stroke: #141414; stroke-width: 1.5; }
 .geo-callout[data-kind='absent'] rect { fill: var(--absent); stroke: var(--absent-edge); }
 .geo-callout[data-active='true'] rect { stroke: var(--accent); stroke-width: 3; }

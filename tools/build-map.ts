@@ -245,8 +245,10 @@ ordered.forEach((code, i) => {
 
 const gameIds = new Set(states.filter((s) => !['CU', 'PR', 'SN', 'CH'].includes(s.code)).map((s) => SOURCE_ID[s.code] ?? s.code));
 const background = collection([
-  // Countries with no game states in them, plus Mexico and Canada as a base layer.
-  ...countries.filter((c) => !['USA', 'CUB', 'PRI'].includes(String(c.id))),
+  // Countries with no game states in them, plus Mexico as a base layer. Canada is left out: its
+  // outline runs through the middle of the Great Lakes, and its provinces and territories cover it
+  // anyway, so leaving it out keeps the lakes water on both sides of the border.
+  ...countries.filter((c) => !['USA', 'CAN', 'CUB', 'PRI'].includes(String(c.id))),
   // Canadian territories and Prince Edward Island are drawn but not playable.
   ...subunits.filter((s) => !gameIds.has(String(s.id))),
 ]);
